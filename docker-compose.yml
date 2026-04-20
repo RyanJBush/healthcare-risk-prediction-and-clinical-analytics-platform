@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: nova
+      POSTGRES_PASSWORD: nova
+      POSTGRES_DB: nova
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: /home/runner/work/nova-ai/nova-ai/backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://nova:nova@db:5432/nova
+      SECRET_KEY: nova-ai-prod-secret-key-please-rotate-in-real-env-123456
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: /home/runner/work/nova-ai/nova-ai/frontend
+    environment:
+      VITE_API_URL: http://localhost:8000
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+
+volumes:
+  postgres_data:
