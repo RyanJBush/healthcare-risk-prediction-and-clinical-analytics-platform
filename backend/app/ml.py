@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 
 FEATURE_NAMES = ["age", "bmi", "blood_pressure", "cholesterol", "glucose", "smoker"]
 
@@ -32,6 +33,13 @@ NORMALIZATION = {
     "cholesterol": (120, 300),
     "glucose": (70, 240),
     "smoker": (0, 1),
+}
+
+BASELINE_WEIGHTS = {
+    "age": 0.28,
+    "blood_pressure": 0.26,
+    "glucose": 0.22,
+    "smoker": 0.24,
 }
 
 PROTECTIVE_CUTOFF = {
@@ -66,7 +74,11 @@ def _clamp(value: float, low: float = 0.0, high: float = 1.0) -> float:
 
 
 def _sigmoid(value: float) -> float:
-    return 1.0 / (1.0 + (2.718281828 ** (-value)))
+    if value >= 0:
+        z = math.exp(-value)
+        return 1.0 / (1.0 + z)
+    z = math.exp(value)
+    return z / (1.0 + z)
 
 
 def _normalize(feature: str, value: float) -> float:
@@ -123,10 +135,10 @@ def _build_rationale(target_type: str, reason_codes: list[str]) -> str:
 
 def _baseline_score(features: dict[str, float]) -> float:
     baseline = (
-        0.28 * _normalize("age", features["age"]) +
-        0.26 * _normalize("blood_pressure", features["blood_pressure"]) +
-        0.22 * _normalize("glucose", features["glucose"]) +
-        0.24 * features["smoker"]
+        BASELINE_WEIGHTS["age"] * _normalize("age", features["age"]) +
+        BASELINE_WEIGHTS["blood_pressure"] * _normalize("blood_pressure", features["blood_pressure"]) +
+        BASELINE_WEIGHTS["glucose"] * _normalize("glucose", features["glucose"]) +
+        BASELINE_WEIGHTS["smoker"] * features["smoker"]
     )
     return round(_clamp(baseline), 4)
 

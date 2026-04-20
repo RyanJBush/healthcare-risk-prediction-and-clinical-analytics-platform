@@ -134,6 +134,10 @@ def _latest_predictions_by_target(db: Session, target_type: str) -> dict[int, Pr
         latest.setdefault(row.patient_id, row)
     return latest
 
+def _triage_priority_key(item: TriageQueueItem) -> tuple[bool, float, datetime]:
+    """Sort high risk first, then by descending risk score, then oldest update first."""
+    return (item.risk_category != "high", -item.risk_score, item.updated_at)
+
 
 @app.get("/health")
 def health() -> dict[str, str]:
@@ -154,7 +158,8 @@ def create_patient(
     db: Session = Depends(get_db),
     actor: User = Depends(require_roles("admin", "clinician")),
 ) -> Patient:
-    patient = Patient(**payload.model_dump(exclude_none=True), masked_identifier=payload.masked_identifier or _mask_id())
+    masked_identifier = payload.masked_identifier if payload.masked_identifier is not None else _mask_id()
+    patient = Patient(**payload.model_dump(exclude_none=True), masked_identifier=masked_identifier)
     db.add(patient)
     _audit(db, "create_patient", "patient", str(patient.id), actor, {"masked_identifier": patient.masked_identifier})
     db.commit()
@@ -239,6 +244,7 @@ def create_observation(
         source=payload.source,
     )
 
+    # Update baseline model inputs with latest observation values used by the risk engine.
     if payload.systolic_bp is not None:
         patient.blood_pressure = payload.systolic_bp
     if payload.glucose is not None:
@@ -369,7 +375,7 @@ def triage_queue(
             )
         )
 
-    queue.sort(key=lambda item: (item.risk_category != "high", -item.risk_score, item.updated_at), reverse=False)
+    queue.sort(key=_triage_priority_key, reverse=False)
     _audit(db, "view_triage_queue", "triage", target_type, actor, {"results": len(queue), "status": status_filter})
     db.commit()
     return queue

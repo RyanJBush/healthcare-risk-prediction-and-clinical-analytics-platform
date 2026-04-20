@@ -7,10 +7,19 @@ const statuses = ['new', 'reviewed', 'escalated', 'monitored']
 export default function TriagePage({ token }) {
   const [queue, setQueue] = useState([])
   const [statusFilter, setStatusFilter] = useState('')
+  const [error, setError] = useState('')
 
   const loadQueue = useCallback(() => {
     const query = statusFilter ? `?status=${statusFilter}` : ''
-    apiRequest(`/api/triage/queue${query}`, {}, token).then(setQueue).catch(() => setQueue([]))
+    apiRequest(`/api/triage/queue${query}`, {}, token)
+      .then((data) => {
+        setQueue(data)
+        setError('')
+      })
+      .catch(() => {
+        setQueue([])
+        setError('Unable to load triage queue right now.')
+      })
   }, [statusFilter, token])
 
   useEffect(() => {
@@ -50,9 +59,10 @@ export default function TriagePage({ token }) {
         </label>
       </div>
       <div className="rounded-xl bg-white p-4 shadow">
+        {error ? <p className="mb-3 text-sm text-red-600">{error}</p> : null}
         <ul className="space-y-2 text-sm">
           {queue.map((item) => (
-            <li key={`${item.patient_id}-${item.updated_at}`} className="rounded border border-slate-200 p-3">
+            <li key={item.patient_id} className="rounded border border-slate-200 p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <p className="font-medium">{item.masked_identifier}</p>
