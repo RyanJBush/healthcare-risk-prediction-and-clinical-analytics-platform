@@ -1,4 +1,5 @@
 from collections import Counter
+from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,18 +21,9 @@ from app.schemas import (
 )
 from app.security import create_access_token, hash_password, require_roles, verify_password
 
-app = FastAPI(title="Nova AI API")
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
-
-@app.on_event("startup")
-def on_startup() -> None:
+@asynccontextmanager
+async def lifespan(_: FastAPI):
     Base.metadata.create_all(bind=engine)
     with Session(bind=engine) as db:
         if not db.query(User).first():
@@ -42,7 +34,17 @@ def on_startup() -> None:
                 ]
             )
             db.commit()
+    yield
 
+
+app = FastAPI(title="Nova AI API", lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/health")
 def health() -> dict[str, str]:

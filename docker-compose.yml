@@ -12,7 +12,7 @@ services:
 
   backend:
     build:
-      context: /home/runner/work/nova-ai/nova-ai/backend
+      context: ./backend
     environment:
       DATABASE_URL: postgresql+psycopg://nova:nova@db:5432/nova
       SECRET_KEY: nova-ai-prod-secret-key-please-rotate-in-real-env-123456
@@ -23,7 +23,7 @@ services:
 
   frontend:
     build:
-      context: /home/runner/work/nova-ai/nova-ai/frontend
+      context: ./frontend
     environment:
       VITE_API_URL: http://localhost:8000
     depends_on:

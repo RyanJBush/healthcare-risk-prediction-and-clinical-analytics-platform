@@ -7,6 +7,8 @@ on:
 
 jobs:
   backend:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -27,6 +29,8 @@ jobs:
         run: DATABASE_URL=sqlite+pysqlite:///./nova_ci.db pytest -q
 
   frontend:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     defaults:
       run:

@@ -57,7 +57,12 @@ def predict_with_explanation(patient) -> tuple[float, str, str]:
 
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(features)
-    values = shap_values[0] if isinstance(shap_values, np.ndarray) else shap_values[1][0]
+    if isinstance(shap_values, np.ndarray):
+        values = shap_values[0]
+    elif isinstance(shap_values, list) and len(shap_values) > 1 and isinstance(shap_values[1], np.ndarray):
+        values = shap_values[1][0]
+    else:  # pragma: no cover - defensive fallback for unexpected SHAP outputs
+        values = np.asarray(shap_values)[0]
     contributions = sorted(zip(FEATURE_NAMES, values, strict=True), key=lambda x: abs(float(x[1])), reverse=True)[:3]
     top_factors = json.dumps(
         [{"feature": feature, "impact": round(float(impact), 4)} for feature, impact in contributions]

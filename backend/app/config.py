@@ -1,3 +1,6 @@
+from secrets import token_urlsafe
+
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -6,7 +9,7 @@ class Settings(BaseSettings):
 
     app_name: str = "Nova AI API"
     database_url: str = "sqlite+pysqlite:///./nova.db"
-    secret_key: str = "nova-ai-dev-secret-key-change-in-production-12345"
+    secret_key: str = Field(default_factory=lambda: token_urlsafe(48))
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60
 
