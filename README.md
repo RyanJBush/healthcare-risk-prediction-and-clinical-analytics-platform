@@ -1,85 +1,47 @@
-# Nova AI Monorepo
+# Nova AI
 
-Production-style scaffold for a healthcare risk prediction platform.
+Production-style monorepo for a healthcare risk prediction platform with explainable ML.
 
-## Stack
-- **Backend**: FastAPI + SQLAlchemy
-- **Frontend**: React + Vite + TypeScript
-- **Database**: PostgreSQL (SQLite default for local quickstart)
-- **ML/Explainability**: Scikit-learn logistic regression + SHAP
-- **Platform**: Docker Compose + GitHub Actions CI
+## Monorepo structure
 
-## Repository layout
-```
-.
-├── backend/
-├── frontend/
-├── docs/
-├── .github/workflows/
-├── docker-compose.yml
-├── Makefile
-└── README.md
+- `backend/` FastAPI API, ML scoring, SHAP explainability, JWT RBAC
+- `frontend/` React + Vite + Tailwind clinical dashboard
+- `docs/` architecture notes
+- `.github/workflows/ci.yml` CI for lint/test/build
+
+## Quick start
+
+```bash
+make setup
+make dev
 ```
 
-## Key API endpoints
+Services:
+
+- Backend API: `http://localhost:8000`
+- Frontend app: `http://localhost:5173`
+- PostgreSQL: `localhost:5432`
+
+## Backend MVP endpoints
+
 - `GET /health`
-- `GET /api/v1/patients`
-- `POST /api/v1/patients`
-- `POST /api/v1/patients/ingest`
-- `POST /api/v1/predictions`
-- `GET /api/v1/explanations/{patient_id}`
+- `POST /auth/login`
+- `POST /api/patients`
+- `GET /api/patients`
+- `GET /api/patients/{id}`
+- `POST /api/predict`
+- `GET /api/predictions/{patient_id}`
+- `GET /api/explanations/{patient_id}`
+- `GET /api/metrics/summary`
 
-## Frontend dashboard pages
-- `Dashboard`: KPI cards + at-risk list
-- `Patients`: searchable/filterable patient table view
-- `Patient Detail`: risk score and SHAP contributions per patient
-- `Risk Analysis`: comparative explainability workspace
+## Demo credentials
 
-## Backend capabilities
-- Patient ingestion (single + batch)
-- Feature engineering pipeline (`pulse_pressure`, `metabolic_risk_index`)
-- ML risk prediction via logistic regression
-- Risk categorization (`low`, `medium`, `high`)
-- SHAP explainability on prediction outputs
-- Structured logging for ingest and prediction operations
+- `clinician` / `clinician123`
+- `admin` / `admin123`
 
-## Local development
-### Prerequisites
-- Python 3.12+
-- Node.js 20+
-- Docker + Docker Compose
+## Quality
 
-### Run with Docker
 ```bash
-make docker-up
-```
-
-### Run services locally
-```bash
-make install
-make dev-backend
-# in another shell
-make dev-frontend
-```
-
-### Test backend
-```bash
+make lint
 make test
 ```
-
-## Example patient payload
-```json
-{
-  "external_id": "P-1001",
-  "age": 68,
-  "sex": "male",
-  "systolic_bp": 152,
-  "diastolic_bp": 88,
-  "cholesterol": 245,
-  "bmi": 32.5,
-  "hba1c": 7.4
-}
-```
-
-## Docs
-See `docs/architecture.md` for architecture and production hardening checklist.

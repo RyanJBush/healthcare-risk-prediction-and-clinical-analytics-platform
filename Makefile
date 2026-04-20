@@ -1,26 +1,23 @@
-.PHONY: install install-backend install-frontend dev dev-backend dev-frontend test docker-up docker-down
+.RECIPEPREFIX := >
 
-install: install-backend install-frontend
+.PHONY: setup dev lint test backend-test frontend-build
 
-install-backend:
-	pip install -r backend/requirements.txt
+setup:
+>python -m pip install -r ./backend/requirements.txt
+>python -m pip install -e "./backend[dev]"
+>npm --prefix ./frontend install
 
-install-frontend:
-	cd frontend && npm install
+dev:
+>docker compose -f ./docker-compose.yml up --build
 
-dev: dev-backend
+lint:
+>cd ./backend && ruff check app tests
+>cd ./frontend && npm run lint
 
-dev-backend:
-	uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
+test: backend-test frontend-build
 
-dev-frontend:
-	cd frontend && npm run dev
+backend-test:
+>cd ./backend && DATABASE_URL=sqlite+pysqlite:///./nova_test.db pytest -q
 
-test:
-	cd backend && pytest -q
-
-docker-up:
-	docker compose up --build
-
-docker-down:
-	docker compose down
+frontend-build:
+>cd ./frontend && npm run build
