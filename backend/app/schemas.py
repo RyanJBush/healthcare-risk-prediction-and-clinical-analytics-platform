@@ -165,3 +165,221 @@ class AuditLogRead(BaseModel):
     resource_id: str
     details: str
     created_at: datetime
+
+
+class ReviewNoteCreate(BaseModel):
+    note_text: str = Field(min_length=5, max_length=4000)
+    recommendation: str | None = Field(default=None, max_length=2000)
+    state_from: ReviewStatus | None = None
+    state_to: ReviewStatus | None = None
+
+
+class ReviewNoteRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    patient_id: int
+    user_id: int | None = None
+    note_text: str
+    recommendation: str | None = None
+    state_from: ReviewStatus | None = None
+    state_to: ReviewStatus | None = None
+    created_at: datetime
+
+
+class ExplanationHistoryItem(BaseModel):
+    explanation_id: int
+    prediction_id: int
+    target_type: TargetType
+    risk_score: float
+    risk_delta_vs_previous: float
+    plain_summary: str
+    rationale_summary: str
+    created_at: datetime
+
+
+class ModelEvaluationItem(BaseModel):
+    model_name: str
+    sample_size: int
+    positive_rate: float
+    roc_auc: float
+    pr_auc: float
+    precision: float
+    recall: float
+    f1: float
+    brier: float
+    false_negative_count: int
+    false_positive_count: int
+    threshold: float
+    cost_score: float
+
+
+class ModelComparisonRead(BaseModel):
+    target_type: TargetType
+    split: str
+    evaluated_at: datetime
+    models: list[ModelEvaluationItem]
+    subgroup_outcomes: dict[str, float] = {}
+    threshold_sweep: list[dict[str, float | int]] = []
+
+
+class ThresholdUpdateRequest(BaseModel):
+    target_type: TargetType
+    medium_threshold: float = Field(ge=0.05, le=0.95)
+    high_threshold: float = Field(ge=0.1, le=0.99)
+    rationale: str = Field(min_length=8, max_length=2000)
+
+
+class ModelConfigChangeRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    target_type: str
+    changed_by_user_id: int | None = None
+    previous_thresholds: str
+    new_thresholds: str
+    rationale: str
+    created_at: datetime
+
+
+class AiPatientSummaryRead(BaseModel):
+    patient_id: int
+    generated_at: datetime
+    summary: str
+    top_risk_drivers: list[str]
+    protective_factors: list[str]
+    follow_up_questions: list[str]
+
+
+class HandoffSummaryRead(BaseModel):
+    generated_at: datetime
+    panel_size: int
+    high_risk_count: int
+    monitored_count: int
+    escalated_count: int
+    summary: str
+    priority_patients: list[str]
+
+
+class BatchScoringJobRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    requested_by_user_id: int | None = None
+    status: str
+    patient_count: int
+    scored_count: int
+    target_type: str
+    model_version: str
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    created_at: datetime
+
+
+class BatchScoringRequest(BaseModel):
+    target_type: TargetType | Literal["all"] = "all"
+    limit: int | None = Field(default=None, ge=1, le=1000)
+
+
+class SeedLoadRequest(BaseModel):
+    count: int = Field(default=50, ge=1, le=500)
+    seed: int = Field(default=42, ge=0)
+
+
+class SeedLoadResult(BaseModel):
+    created_count: int
+    seed: int
+    first_patient_id: int | None = None
+
+
+class EvaluationRunRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    requested_by_user_id: int | None = None
+    target_type: str
+    threshold: float
+    status: str
+    metrics_json: str
+    created_at: datetime
+
+
+class PatientAccessGrantCreate(BaseModel):
+    user_id: int
+    patient_id: int
+    can_view: bool = True
+
+
+class PatientAccessGrantRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    user_id: int
+    patient_id: int
+    can_view: bool
+    created_at: datetime
+
+
+class DisclaimerRead(BaseModel):
+    message: str
+    version: str
+
+
+class TrainingRunRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    requested_by_user_id: int | None = None
+    target_type: str
+    model_family: str
+    artifact_path: str
+    metrics_json: str
+    status: str
+    created_at: datetime
+
+
+class TrainingRunRequest(BaseModel):
+    target_type: TargetType = "readmission"
+
+
+class RegistryModelRead(BaseModel):
+    name: str
+    version: str
+    target_type: str
+    family: str
+    description: str
+
+
+class TimelineEventRead(BaseModel):
+    event_type: str
+    event_id: int
+    event_time: datetime
+    summary: str
+
+
+class FollowUpRecommendationRead(BaseModel):
+    patient_id: int
+    generated_at: datetime
+    risk_category: str
+    recommendations: list[str]
+
+
+class CohortPatientRead(BaseModel):
+    patient_id: int
+    masked_identifier: str
+    review_status: str
+    risk_category: str
+    risk_score: float
+
+
+class NoteSummaryRead(BaseModel):
+    patient_id: int
+    generated_at: datetime
+    note_count: int
+    summary: str
+
+
+class FollowUpQuestionsRead(BaseModel):
+    patient_id: int
+    generated_at: datetime
+    questions: list[str]

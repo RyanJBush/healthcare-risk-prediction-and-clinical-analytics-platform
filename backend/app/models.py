@@ -120,3 +120,78 @@ class AuditLog(Base):
     resource_id: Mapped[str] = mapped_column(String(64), index=True)
     details: Mapped[str] = mapped_column(Text, default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class ReviewNote(Base):
+    __tablename__ = "review_notes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    patient_id: Mapped[int] = mapped_column(ForeignKey("patients.id"), index=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    note_text: Mapped[str] = mapped_column(Text)
+    recommendation: Mapped[str | None] = mapped_column(Text, nullable=True)
+    state_from: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    state_to: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class ModelConfigChange(Base):
+    __tablename__ = "model_config_changes"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    target_type: Mapped[str] = mapped_column(String(32), index=True)
+    changed_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    previous_thresholds: Mapped[str] = mapped_column(Text, default="{}")
+    new_thresholds: Mapped[str] = mapped_column(Text, default="{}")
+    rationale: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class BatchScoringJob(Base):
+    __tablename__ = "batch_scoring_jobs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    requested_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(32), default="queued", index=True)
+    patient_count: Mapped[int] = mapped_column(Integer, default=0)
+    scored_count: Mapped[int] = mapped_column(Integer, default=0)
+    target_type: Mapped[str] = mapped_column(String(32), default="all")
+    model_version: Mapped[str] = mapped_column(String(32), default="tiered-v1")
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class EvaluationRun(Base):
+    __tablename__ = "evaluation_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    requested_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    target_type: Mapped[str] = mapped_column(String(32), index=True)
+    threshold: Mapped[float] = mapped_column(Float, default=0.55)
+    status: Mapped[str] = mapped_column(String(32), default="completed", index=True)
+    metrics_json: Mapped[str] = mapped_column(Text, default="{}")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class PatientAccessGrant(Base):
+    __tablename__ = "patient_access_grants"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    patient_id: Mapped[int] = mapped_column(ForeignKey("patients.id"), index=True)
+    can_view: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
+class TrainingRun(Base):
+    __tablename__ = "training_runs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    requested_by_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    target_type: Mapped[str] = mapped_column(String(32), default="readmission", index=True)
+    model_family: Mapped[str] = mapped_column(String(64), default="logistic_regression")
+    artifact_path: Mapped[str] = mapped_column(String(255), default="")
+    metrics_json: Mapped[str] = mapped_column(Text, default="{}")
+    status: Mapped[str] = mapped_column(String(32), default="completed", index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
