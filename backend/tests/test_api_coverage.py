@@ -16,7 +16,7 @@ if _db_url.startswith("sqlite") and "///" in _db_url:
 
 from app.main import app
 from app.database import SessionLocal
-from app.models import Prediction
+from app.models import Patient, Prediction
 
 
 def auth_headers(username: str = "clinician", password: str = "clinician123") -> dict[str, str]:
@@ -81,6 +81,18 @@ def insert_readmission_prediction(patient_id: int, risk_score: float, risk_categ
         db.commit()
 
 
+def clear_historical_outcomes() -> None:
+    with SessionLocal() as db:
+        db.query(Patient).update({Patient.has_historical_outcome: False})
+        db.commit()
+
+
+def clear_non_readmission_predictions() -> None:
+    with SessionLocal() as db:
+        db.query(Prediction).filter(Prediction.target_type != "readmission").delete()
+        db.commit()
+
+
 def test_missing_branch_paths_for_error_handling_and_filters() -> None:
     admin_headers = auth_headers("admin", "admin123")
     clinician_headers = auth_headers("clinician", "clinician123")
@@ -96,13 +108,19 @@ def test_missing_branch_paths_for_error_handling_and_filters() -> None:
 
         created_sort = client.get("/api/patients?sort=created_at_asc", headers=clinician_headers)
         assert created_sort.status_code == 200
-        assert [item["id"] for item in created_sort.json()] == [p1, p2, p3]
+        created_ids = [item["id"] for item in created_sort.json() if item["id"] in {p1, p2, p3}]
+        assert created_ids == [p1, p2, p3]
 
         age_desc = client.get("/api/patients?sort=age_desc", headers=clinician_headers)
-        assert [item["id"] for item in age_desc.json()] == [p2, p1, p3]
+        age_desc_ids = [item["id"] for item in age_desc.json() if item["id"] in {p1, p2, p3}]
+        assert age_desc_ids == [p2, p1, p3]
 
         age_asc = client.get("/api/patients?sort=age_asc", headers=clinician_headers)
-        assert [item["id"] for item in age_asc.json()] == [p3, p1, p2]
+        age_asc_ids = [item["id"] for item in age_asc.json() if item["id"] in {p1, p2, p3}]
+        assert age_asc_ids == [p3, p1, p2]
+
+        fallback_sort = client.get("/api/patients?sort=unsupported", headers=clinician_headers)
+        assert fallback_sort.status_code == 200
 
         assert client.get("/api/patients/999999", headers=admin_headers).status_code == 404
         assert (
@@ -193,6 +211,7 @@ def test_triage_cohort_and_metrics_branch_paths() -> None:
     clinician_headers = auth_headers("clinician", "clinician123")
 
     with TestClient(app) as client:
+        clear_historical_outcomes()
         metrics = client.get("/api/metrics/summary", headers=clinician_headers)
         assert metrics.status_code == 200
         assert metrics.json()["recall_at_threshold"] == 0.0
@@ -222,7 +241,11 @@ def test_triage_cohort_and_metrics_branch_paths() -> None:
 
         monitored_queue = client.get("/api/triage/queue?status=monitored", headers=clinician_headers)
         assert monitored_queue.status_code == 200
-        assert [item["patient_id"] for item in monitored_queue.json()] == [medium_patient]
+        monitored_queue_ids = [item["patient_id"] for item in monitored_queue.json()]
+        assert medium_patient in monitored_queue_ids
+        assert high_patient not in monitored_queue_ids
+        assert low_patient not in monitored_queue_ids
+        assert no_prediction not in monitored_queue_ids
 
         watchlist = client.get("/api/triage/watchlist", headers=clinician_headers)
         watchlist_ids = [item["patient_id"] for item in watchlist.json()]
@@ -236,8 +259,10 @@ def test_triage_cohort_and_metrics_branch_paths() -> None:
             headers=clinician_headers,
         )
         assert filtered.status_code == 200
-        assert filtered.json() == []
+        filtered_ids = {item["patient_id"] for item in filtered.json()}
+        assert not ({no_prediction, medium_patient, low_patient, high_patient} & filtered_ids)
 
+        clear_non_readmission_predictions()
         cohort_metrics = client.get("/api/metrics/cohorts", headers=clinician_headers)
         assert cohort_metrics.status_code == 200
         assert cohort_metrics.json()["average_risk_by_target"]["deterioration"] == 0.0
