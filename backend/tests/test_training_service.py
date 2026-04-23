@@ -45,6 +45,7 @@ def test_run_offline_training_handles_single_class_with_stubbed_model(tmp_path, 
 
     monkeypatch.setattr(training, "LogisticRegression", _StubLogisticRegression)
     monkeypatch.setattr(training, "ARTIFACT_DIR", tmp_path)
+    monkeypatch.setattr(training.joblib, "dump", lambda model, path: None)
 
     patients = [_patient(i, outcome=True) for i in range(1, 10)]
     result = training.run_offline_training(patients, "readmission", run_id=2)

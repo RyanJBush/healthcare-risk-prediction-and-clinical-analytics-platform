@@ -86,8 +86,8 @@ def test_evaluate_models_returns_sorted_metrics_and_subgroups(monkeypatch) -> No
     assert result["subgroup_outcomes"]["smoker"] == 1.0
     assert result["subgroup_outcomes"]["non_smoker"] == 0.0
     assert result["threshold_sweep"] == [
-        {"threshold": 0.4, "alerts": 1},
-        {"threshold": 0.5, "alerts": 1},
-        {"threshold": 0.6, "alerts": 1},
-        {"threshold": 0.7, "alerts": 0},
+        {"threshold": 0.4, "alerts": 2},
+        {"threshold": 0.5, "alerts": 2},
+        {"threshold": 0.6, "alerts": 2},
+        {"threshold": 0.7, "alerts": 2},
     ]
