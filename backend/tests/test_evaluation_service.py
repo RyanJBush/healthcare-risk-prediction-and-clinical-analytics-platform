@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
+import pytest
 
 from app.models import Patient
 from app.services import evaluation
@@ -102,7 +103,7 @@ def test_model_candidates_include_expected_baselines() -> None:
     assert ("xgboost" in names) == (evaluation.XGBClassifier is not None)
 
 
-def test_evaluate_models_threshold_sweep_handles_missing_reference_probabilities(monkeypatch) -> None:  # noqa: ANN001
+def test_evaluate_models_returns_empty_with_no_candidates(monkeypatch: pytest.MonkeyPatch) -> None:
     patients = [_patient(i, outcome=(i % 2 == 0), smoker=(i % 3 == 0)) for i in range(1, 11)]
     monkeypatch.setattr(evaluation, "_model_candidates", lambda: [])
 

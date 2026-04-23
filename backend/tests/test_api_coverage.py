@@ -4,9 +4,9 @@ from pathlib import Path
 
 from fastapi.testclient import TestClient
 
-_db_url = os.getenv("DATABASE_URL", "")
-if _db_url.startswith("sqlite") and "///" in _db_url:
-    db_path = _db_url.split("///", maxsplit=1)[1]
+db_url = os.getenv("DATABASE_URL", "")
+if db_url.startswith("sqlite") and "///" in db_url:
+    db_path = db_url.split("///", maxsplit=1)[1]
     if db_path.startswith("./"):
         db_file = Path(__file__).resolve().parents[1] / db_path[2:]
     else:
@@ -101,23 +101,36 @@ def test_missing_branch_paths_for_error_handling_and_filters() -> None:
     with TestClient(app) as client:
         invalid_login = client.post("/auth/login", json={"username": "clinician", "password": "wrong"})
         assert invalid_login.status_code == 401
+        assert invalid_login.json()["detail"] == "Invalid credentials"
 
-        p1 = create_patient(client, clinician_headers, full_name="Sort One", age=50)
-        p2 = create_patient(client, clinician_headers, full_name="Sort Two", age=70)
-        p3 = create_patient(client, clinician_headers, full_name="Sort Three", age=30)
+        middle_age_patient_id = create_patient(client, clinician_headers, full_name="Sort One", age=50)
+        oldest_patient_id = create_patient(client, clinician_headers, full_name="Sort Two", age=70)
+        youngest_patient_id = create_patient(client, clinician_headers, full_name="Sort Three", age=30)
 
         created_sort = client.get("/api/patients?sort=created_at_asc", headers=clinician_headers)
         assert created_sort.status_code == 200
-        created_ids = [item["id"] for item in created_sort.json() if item["id"] in {p1, p2, p3}]
-        assert created_ids == [p1, p2, p3]
+        created_ids = [
+            item["id"]
+            for item in created_sort.json()
+            if item["id"] in {middle_age_patient_id, oldest_patient_id, youngest_patient_id}
+        ]
+        assert created_ids == [middle_age_patient_id, oldest_patient_id, youngest_patient_id]
 
         age_desc = client.get("/api/patients?sort=age_desc", headers=clinician_headers)
-        age_desc_ids = [item["id"] for item in age_desc.json() if item["id"] in {p1, p2, p3}]
-        assert age_desc_ids == [p2, p1, p3]
+        age_desc_ids = [
+            item["id"]
+            for item in age_desc.json()
+            if item["id"] in {middle_age_patient_id, oldest_patient_id, youngest_patient_id}
+        ]
+        assert age_desc_ids == [oldest_patient_id, middle_age_patient_id, youngest_patient_id]
 
         age_asc = client.get("/api/patients?sort=age_asc", headers=clinician_headers)
-        age_asc_ids = [item["id"] for item in age_asc.json() if item["id"] in {p1, p2, p3}]
-        assert age_asc_ids == [p3, p1, p2]
+        age_asc_ids = [
+            item["id"]
+            for item in age_asc.json()
+            if item["id"] in {middle_age_patient_id, oldest_patient_id, youngest_patient_id}
+        ]
+        assert age_asc_ids == [youngest_patient_id, middle_age_patient_id, oldest_patient_id]
 
         fallback_sort = client.get("/api/patients?sort=unsupported", headers=clinician_headers)
         assert fallback_sort.status_code == 200
@@ -141,7 +154,7 @@ def test_missing_branch_paths_for_error_handling_and_filters() -> None:
         )
         assert client.post("/api/predict", headers=clinician_headers, json={"patient_id": 999999}).status_code == 404
 
-        prediction_resp = client.post("/api/predict", headers=clinician_headers, json={"patient_id": p1})
+        prediction_resp = client.post("/api/predict", headers=clinician_headers, json={"patient_id": middle_age_patient_id})
         assert prediction_resp.status_code == 200
         assert prediction_resp.json()["target_type"] == "readmission"
 
@@ -176,6 +189,7 @@ def test_missing_branch_paths_for_error_handling_and_filters() -> None:
             },
         )
         assert invalid_thresholds.status_code == 422
+        assert invalid_thresholds.json()["detail"] == "high_threshold must be greater than medium_threshold"
 
         missing_grant_target = client.post(
             "/api/access/grants",
@@ -187,14 +201,14 @@ def test_missing_branch_paths_for_error_handling_and_filters() -> None:
         first_grant = client.post(
             "/api/access/grants",
             headers=admin_headers,
-            json={"user_id": 4, "patient_id": p1, "can_view": True},
+            json={"user_id": 4, "patient_id": middle_age_patient_id, "can_view": True},
         )
         assert first_grant.status_code == 201
 
         updated_grant = client.post(
             "/api/access/grants",
             headers=admin_headers,
-            json={"user_id": 4, "patient_id": p1, "can_view": False},
+            json={"user_id": 4, "patient_id": middle_age_patient_id, "can_view": False},
         )
         assert updated_grant.status_code == 201
         assert updated_grant.json()["id"] == first_grant.json()["id"]
@@ -216,8 +230,10 @@ def test_triage_cohort_and_metrics_branch_paths() -> None:
         assert metrics.status_code == 200
         assert metrics.json()["recall_at_threshold"] == 0.0
 
-        no_prediction = create_patient(client, clinician_headers, full_name="No Prediction", age=44, has_historical_outcome=False)
-        medium_patient = create_patient(
+        no_prediction_patient_id = create_patient(
+            client, clinician_headers, full_name="No Prediction", age=44, has_historical_outcome=False
+        )
+        medium_risk_patient_id = create_patient(
             client,
             clinician_headers,
             full_name="Medium Risk",
@@ -225,34 +241,38 @@ def test_triage_cohort_and_metrics_branch_paths() -> None:
             has_historical_outcome=False,
             review_status="monitored",
         )
-        low_patient = create_patient(client, clinician_headers, full_name="Low Risk", age=46, has_historical_outcome=False)
-        high_patient = create_patient(client, clinician_headers, full_name="High Risk", age=47, has_historical_outcome=False)
+        low_risk_patient_id = create_patient(
+            client, clinician_headers, full_name="Low Risk", age=46, has_historical_outcome=False
+        )
+        high_risk_patient_id = create_patient(
+            client, clinician_headers, full_name="High Risk", age=47, has_historical_outcome=False
+        )
 
-        insert_readmission_prediction(medium_patient, risk_score=0.6, risk_category="medium")
-        insert_readmission_prediction(low_patient, risk_score=0.2, risk_category="low")
-        insert_readmission_prediction(high_patient, risk_score=0.9, risk_category="high")
+        insert_readmission_prediction(medium_risk_patient_id, risk_score=0.6, risk_category="medium")
+        insert_readmission_prediction(low_risk_patient_id, risk_score=0.2, risk_category="low")
+        insert_readmission_prediction(high_risk_patient_id, risk_score=0.9, risk_category="high")
 
         queue = client.get("/api/triage/queue", headers=clinician_headers)
         queue_ids = [item["patient_id"] for item in queue.json()]
-        assert high_patient in queue_ids
-        assert medium_patient in queue_ids
-        assert low_patient not in queue_ids
-        assert no_prediction not in queue_ids
+        assert high_risk_patient_id in queue_ids
+        assert medium_risk_patient_id in queue_ids
+        assert low_risk_patient_id not in queue_ids
+        assert no_prediction_patient_id not in queue_ids
 
         monitored_queue = client.get("/api/triage/queue?status=monitored", headers=clinician_headers)
         assert monitored_queue.status_code == 200
         monitored_queue_ids = [item["patient_id"] for item in monitored_queue.json()]
-        assert medium_patient in monitored_queue_ids
-        assert high_patient not in monitored_queue_ids
-        assert low_patient not in monitored_queue_ids
-        assert no_prediction not in monitored_queue_ids
+        assert medium_risk_patient_id in monitored_queue_ids
+        assert high_risk_patient_id not in monitored_queue_ids
+        assert low_risk_patient_id not in monitored_queue_ids
+        assert no_prediction_patient_id not in monitored_queue_ids
 
         watchlist = client.get("/api/triage/watchlist", headers=clinician_headers)
         watchlist_ids = [item["patient_id"] for item in watchlist.json()]
-        assert high_patient in watchlist_ids
-        assert medium_patient not in watchlist_ids
-        assert low_patient not in watchlist_ids
-        assert no_prediction not in watchlist_ids
+        assert high_risk_patient_id in watchlist_ids
+        assert medium_risk_patient_id not in watchlist_ids
+        assert low_risk_patient_id not in watchlist_ids
+        assert no_prediction_patient_id not in watchlist_ids
 
         filtered = client.get(
             "/api/cohorts/filter?review_status=monitored&risk_category=high&target_type=readmission",
@@ -260,7 +280,9 @@ def test_triage_cohort_and_metrics_branch_paths() -> None:
         )
         assert filtered.status_code == 200
         filtered_ids = {item["patient_id"] for item in filtered.json()}
-        assert not ({no_prediction, medium_patient, low_patient, high_patient} & filtered_ids)
+        assert not (
+            {no_prediction_patient_id, medium_risk_patient_id, low_risk_patient_id, high_risk_patient_id} & filtered_ids
+        )
 
         clear_non_readmission_predictions()
         cohort_metrics = client.get("/api/metrics/cohorts", headers=clinician_headers)
