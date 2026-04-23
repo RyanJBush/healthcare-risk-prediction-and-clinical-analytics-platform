@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 import numpy as np
+import pytest
 
 from app.models import Patient
 from app.services import evaluation
@@ -90,4 +91,28 @@ def test_evaluate_models_returns_sorted_metrics_and_subgroups(monkeypatch) -> No
         {"threshold": 0.5, "alerts": 2},
         {"threshold": 0.6, "alerts": 2},
         {"threshold": 0.7, "alerts": 2},
+    ]
+
+
+def test_model_candidates_include_expected_baselines() -> None:
+    models = evaluation._model_candidates()  # noqa: SLF001
+    names = [name for name, _ in models]
+
+    assert "logistic_regression" in names
+    assert "random_forest" in names
+    assert ("xgboost" in names) == (evaluation.XGBClassifier is not None)
+
+
+def test_evaluate_models_returns_empty_with_no_candidates(monkeypatch: pytest.MonkeyPatch) -> None:
+    patients = [_patient(i, outcome=(i % 2 == 0), smoker=(i % 3 == 0)) for i in range(1, 11)]
+    monkeypatch.setattr(evaluation, "_model_candidates", lambda: [])
+
+    result = evaluation.evaluate_models(patients, threshold=0.55)
+
+    assert result["models"] == []
+    assert result["threshold_sweep"] == [
+        {"threshold": 0.4, "alerts": 0},
+        {"threshold": 0.5, "alerts": 0},
+        {"threshold": 0.6, "alerts": 0},
+        {"threshold": 0.7, "alerts": 0},
     ]
