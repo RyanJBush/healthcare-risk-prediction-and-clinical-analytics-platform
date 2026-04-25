@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { apiRequest } from '../api'
 
@@ -8,8 +9,11 @@ export default function TriagePage({ token }) {
   const [queue, setQueue] = useState([])
   const [statusFilter, setStatusFilter] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [busyId, setBusyId] = useState(null)
 
   const loadQueue = useCallback(() => {
+    setLoading(true)
     const query = statusFilter ? `?status=${statusFilter}` : ''
     apiRequest(`/api/triage/queue${query}`, {}, token)
       .then((data) => {
@@ -20,22 +24,31 @@ export default function TriagePage({ token }) {
         setQueue([])
         setError('Unable to load triage queue right now.')
       })
+      .finally(() => setLoading(false))
   }, [statusFilter, token])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadQueue()
   }, [loadQueue])
 
   async function updateStatus(patientId, reviewStatus) {
-    await apiRequest(
-      `/api/patients/${patientId}/review-status`,
-      {
-        method: 'PATCH',
-        body: JSON.stringify({ review_status: reviewStatus }),
-      },
-      token,
-    )
-    loadQueue()
+    setBusyId(patientId)
+    try {
+      await apiRequest(
+        `/api/patients/${patientId}/review-status`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ review_status: reviewStatus }),
+        },
+        token,
+      )
+      loadQueue()
+    } catch {
+      setError('Unable to update review status right now.')
+    } finally {
+      setBusyId(null)
+    }
   }
 
   return (
@@ -61,11 +74,16 @@ export default function TriagePage({ token }) {
       <div className="rounded-xl bg-white p-4 shadow">
         {error ? <p className="mb-3 text-sm text-red-600">{error}</p> : null}
         <ul className="space-y-2 text-sm">
+          {loading ? <li className="rounded border border-slate-200 p-3 text-slate-500">Loading triage queue…</li> : null}
           {queue.map((item) => (
             <li key={item.patient_id} className="rounded border border-slate-200 p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="font-medium">{item.masked_identifier}</p>
+                  <p className="font-medium">
+                    <Link to={`/patients/${item.patient_id}`} className="text-blue-700 hover:underline">
+                      {item.masked_identifier}
+                    </Link>
+                  </p>
                   <p className="text-slate-600">
                     {item.target_type} risk {item.risk_score.toFixed(2)} ({item.risk_category}) • confidence {item.confidence_score.toFixed(2)}
                   </p>
@@ -74,6 +92,7 @@ export default function TriagePage({ token }) {
                   value={item.review_status}
                   onChange={(event) => updateStatus(item.patient_id, event.target.value)}
                   className="rounded border border-slate-300 px-2 py-1"
+                  disabled={busyId === item.patient_id}
                 >
                   {statuses.map((status) => (
                     <option key={status} value={status}>
@@ -84,6 +103,9 @@ export default function TriagePage({ token }) {
               </div>
             </li>
           ))}
+          {!loading && queue.length === 0 ? (
+            <li className="rounded border border-slate-200 p-3 text-slate-500">No patients match this queue filter.</li>
+          ) : null}
         </ul>
       </div>
     </div>
