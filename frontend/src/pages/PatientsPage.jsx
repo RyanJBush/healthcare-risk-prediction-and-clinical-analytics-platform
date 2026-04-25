@@ -17,55 +17,32 @@ const blankPatient = {
 export default function PatientsPage({ token }) {
   const [patients, setPatients] = useState([])
   const [formData, setFormData] = useState(blankPatient)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [saving, setSaving] = useState(false)
 
   const loadPatients = useCallback(() => {
-    setLoading(true)
-    apiRequest('/api/patients', {}, token)
-      .then((data) => {
-        setPatients(data)
-        setError('')
-      })
-      .catch((loadError) => {
-        setPatients([])
-        setError(loadError.message || 'Unable to load patients.')
-      })
-      .finally(() => setLoading(false))
+    apiRequest('/api/patients', {}, token).then(setPatients)
   }, [token])
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadPatients()
   }, [loadPatients])
 
   async function handleSubmit(event) {
     event.preventDefault()
-    setSaving(true)
-    try {
-      await apiRequest(
-        '/api/patients',
-        {
-          method: 'POST',
-          body: JSON.stringify(formData),
-        },
-        token,
-      )
-      setFormData(blankPatient)
-      loadPatients()
-      setError('')
-    } catch (saveError) {
-      setError(saveError.message || 'Unable to create patient.')
-    } finally {
-      setSaving(false)
-    }
+    await apiRequest(
+      '/api/patients',
+      {
+        method: 'POST',
+        body: JSON.stringify(formData),
+      },
+      token,
+    )
+    setFormData(blankPatient)
+    loadPatients()
   }
 
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Patients</h1>
-      {error ? <p className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
       <div className="grid gap-4 md:grid-cols-2">
         <form onSubmit={handleSubmit} className="space-y-3 rounded-xl bg-white p-4 shadow">
           <h2 className="text-lg font-medium">Add Patient</h2>
@@ -106,19 +83,14 @@ export default function PatientsPage({ token }) {
             />
             Historical Outcome Label Present
           </label>
-          <button
-            type="submit"
-            className="rounded bg-slate-900 px-3 py-2 text-white hover:bg-slate-700 disabled:opacity-60"
-            disabled={saving}
-          >
-            {saving ? 'Saving Patient…' : 'Save Patient'}
+          <button type="submit" className="rounded bg-slate-900 px-3 py-2 text-white hover:bg-slate-700">
+            Save Patient
           </button>
         </form>
 
         <div className="rounded-xl bg-white p-4 shadow">
           <h2 className="mb-3 text-lg font-medium">Patient Profiles</h2>
           <ul className="space-y-2">
-            {loading ? <li className="rounded border border-slate-200 p-3 text-slate-500">Loading patients…</li> : null}
             {patients.map((patient) => (
               <li key={patient.id} className="rounded border border-slate-200 p-3">
                 <div className="flex items-center justify-between">
@@ -134,9 +106,6 @@ export default function PatientsPage({ token }) {
                 </div>
               </li>
             ))}
-            {!loading && patients.length === 0 ? (
-              <li className="rounded border border-slate-200 p-3 text-slate-500">No patients yet. Add one to begin.</li>
-            ) : null}
           </ul>
         </div>
       </div>
