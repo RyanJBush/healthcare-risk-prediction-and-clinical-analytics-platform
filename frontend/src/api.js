@@ -11,19 +11,8 @@ export async function apiRequest(path, options = {}, token) {
   })
 
   if (!response.ok) {
-    const raw = await response.text()
-    let message = raw || `Request failed: ${response.status}`
-    try {
-      const parsed = JSON.parse(raw)
-      if (typeof parsed?.detail === 'string') {
-        message = parsed.detail
-      } else if (Array.isArray(parsed?.detail)) {
-        message = parsed.detail.map((item) => item.msg || item.type || 'Validation error').join(', ')
-      }
-    } catch {
-      // Keep original raw text as message fallback.
-    }
-    throw new Error(message)
+    const message = await response.text()
+    throw new Error(message || `Request failed: ${response.status}`)
   }
 
   return response.status === 204 ? null : response.json()

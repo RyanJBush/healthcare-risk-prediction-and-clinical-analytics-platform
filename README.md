@@ -12,7 +12,6 @@ Production-style monorepo for a healthcare risk prediction platform with explain
 ## Quick start
 
 ```bash
-make doctor
 make setup
 make dev
 ```
@@ -22,42 +21,6 @@ Services:
 - Backend API: `http://localhost:8000`
 - Frontend app: `http://localhost:5173`
 - PostgreSQL: `localhost:5432`
-
-## Local non-Docker development
-
-Backend:
-
-```bash
-cp backend/.env.example backend/.env
-cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-pip install -e ".[dev]"
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
-
-Frontend:
-
-```bash
-cp frontend/.env.example frontend/.env
-cd frontend
-npm install
-npm run dev -- --host 0.0.0.0 --port 5173
-```
-
-## Seed demo data + baseline scoring
-
-With backend running, you can load synthetic patients and score the cohort in one step:
-
-```bash
-make demo-bootstrap
-```
-
-Optional overrides:
-
-```bash
-API_BASE=http://localhost:8000 SEED_COUNT=75 SEED_VALUE=7 ./scripts/bootstrap_demo.sh
-```
 
 ## Backend endpoints (Phase 1)
 
@@ -121,5 +84,3 @@ API_BASE=http://localhost:8000 SEED_COUNT=75 SEED_VALUE=7 ./scripts/bootstrap_de
 make lint
 make test
 ```
-
-> Note: backend requires Python `3.11+`, and frontend requires Node `20+`.
