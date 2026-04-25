@@ -8,20 +8,10 @@ const COLORS = ['#16a34a', '#f59e0b', '#dc2626']
 export default function DashboardPage({ token }) {
   const [metrics, setMetrics] = useState(null)
   const [cohorts, setCohorts] = useState(null)
-  const [error, setError] = useState('')
 
   useEffect(() => {
-    Promise.all([apiRequest('/api/metrics/summary', {}, token), apiRequest('/api/metrics/cohorts', {}, token)])
-      .then(([nextMetrics, nextCohorts]) => {
-        setMetrics(nextMetrics)
-        setCohorts(nextCohorts)
-        setError('')
-      })
-      .catch((loadError) => {
-        setMetrics(null)
-        setCohorts(null)
-        setError(loadError.message || 'Unable to load dashboard metrics.')
-      })
+    apiRequest('/api/metrics/summary', {}, token).then(setMetrics).catch(() => setMetrics(null))
+    apiRequest('/api/metrics/cohorts', {}, token).then(setCohorts).catch(() => setCohorts(null))
   }, [token])
 
   const chartData = metrics
@@ -31,7 +21,6 @@ export default function DashboardPage({ token }) {
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Dashboard</h1>
-      {error ? <p className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
       <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
         <KpiCard label="High-Risk Patients" value={metrics?.high_risk_patients ?? 0} />
         <KpiCard label="Average Risk" value={metrics ? metrics.average_risk_score.toFixed(2) : '0.00'} />
