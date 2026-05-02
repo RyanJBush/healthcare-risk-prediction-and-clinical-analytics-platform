@@ -63,6 +63,7 @@ from app.schemas import (
     SeedLoadResult,
     ThresholdUpdateRequest,
     TieredPredictionRead,
+    PatientRiskModelComparisonRead,
     Token,
     TriageQueueItem,
     DisclaimerRead,
@@ -84,6 +85,7 @@ from app.services.summaries import (
     build_patient_summary,
 )
 from app.services.training import run_offline_training
+from app.services.risk_models import compare_patient_risk_models
 
 
 @asynccontextmanager
@@ -430,6 +432,30 @@ def create_tiered_prediction(
         db.refresh(prediction)
     return TieredPredictionRead(patient_id=patient.id, predictions=predictions)
 
+
+
+
+@app.get("/api/predict/compare/{patient_id}", response_model=PatientRiskModelComparisonRead)
+def compare_patient_models(
+    patient_id: int,
+    target_type: str = Query(default="readmission"),
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_roles("admin", "clinician", "analyst")),
+) -> PatientRiskModelComparisonRead:
+    patient = db.get(Patient, patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    training_patients = db.query(Patient).all()
+    model_predictions = compare_patient_risk_models(training_patients, patient)
+    _audit(db, "compare_patient_models", "patient", str(patient.id), actor, {"models": len(model_predictions), "target_type": target_type})
+    db.commit()
+
+    return PatientRiskModelComparisonRead(
+        patient_id=patient.id,
+        target_type=target_type,
+        models=model_predictions,
+    )
 
 @app.post("/api/jobs/batch-score", response_model=BatchScoringJobRead, status_code=status.HTTP_201_CREATED)
 def start_batch_scoring(

@@ -79,6 +79,18 @@ class TieredPredictionRead(BaseModel):
     predictions: list[PredictionRead]
 
 
+class ModelRiskPredictionRead(BaseModel):
+    model_name: str
+    risk_score: float
+    risk_category: str
+
+
+class PatientRiskModelComparisonRead(BaseModel):
+    patient_id: int
+    target_type: TargetType
+    models: list[ModelRiskPredictionRead]
+
+
 class ReviewStatusUpdate(BaseModel):
     review_status: ReviewStatus
     assigned_reviewer: str | None = Field(default=None, max_length=64)

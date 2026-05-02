@@ -23,26 +23,20 @@ export default function RiskAnalysisPage({ token }) {
     setError('')
     setRestrictedMessage('')
     try {
-      const [items, cards, disclaimerPayload] = await Promise.all([
-        apiRequest('/api/patients', {}, token),
+      const [cards, disclaimerPayload] = await Promise.all([
         apiRequest('/api/model-cards', {}, token),
         apiRequest('/api/disclaimer', {}, token),
       ])
       setModelCards(cards)
       setDisclaimer(disclaimerPayload)
 
-      const withScores = await Promise.all(
-        items.map(async (patient) => {
-          const predictions = await apiRequest(`/api/predictions/${patient.id}`, {}, token)
-          const latestTargetPrediction = Array.isArray(predictions)
-            ? predictions.find((prediction) => prediction.target_type === targetType)
-            : null
-          return {
-            patient: patient.masked_identifier,
-            risk: latestTargetPrediction ? Number(latestTargetPrediction.risk_score.toFixed(2)) : 0,
-          }
-        }),
-      )
+      const cohortRows = await apiRequest(`/api/cohorts/filter?target_type=${targetType}`, {}, token)
+      const withScores = Array.isArray(cohortRows)
+        ? cohortRows.map((row) => ({
+            patient: row.masked_identifier,
+            risk: Number(row.risk_score.toFixed(2)),
+          }))
+        : []
       setPatients(withScores)
 
       try {
