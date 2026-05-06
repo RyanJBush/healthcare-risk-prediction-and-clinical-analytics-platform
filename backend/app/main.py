@@ -438,7 +438,7 @@ def create_tiered_prediction(
 @app.get("/api/predict/compare/{patient_id}", response_model=PatientRiskModelComparisonRead)
 def compare_patient_models(
     patient_id: int,
-    target_type: str = Query(default="readmission"),
+    target_type: str = Query(default="readmission", pattern="^(readmission|deterioration|adverse_event)$"),
     db: Session = Depends(get_db),
     actor: User = Depends(require_roles("admin", "clinician", "analyst")),
 ) -> PatientRiskModelComparisonRead:
@@ -447,7 +447,7 @@ def compare_patient_models(
         raise HTTPException(status_code=404, detail="Patient not found")
 
     training_patients = db.query(Patient).all()
-    model_predictions = compare_patient_risk_models(training_patients, patient)
+    model_predictions = compare_patient_risk_models(training_patients, patient, target_type=target_type)
     _audit(db, "compare_patient_models", "patient", str(patient.id), actor, {"models": len(model_predictions), "target_type": target_type})
     db.commit()
 
@@ -537,7 +537,7 @@ def get_explanations(
 @app.get("/api/explanations/{patient_id}/history", response_model=list[ExplanationHistoryItem])
 def get_explanation_history(
     patient_id: int,
-    target_type: str = Query(default="readmission"),
+    target_type: str = Query(default="readmission", pattern="^(readmission|deterioration|adverse_event)$"),
     db: Session = Depends(get_db),
     actor: User = Depends(require_roles("admin", "clinician", "analyst", "viewer")),
 ) -> list[ExplanationHistoryItem]:
@@ -576,7 +576,7 @@ def get_explanation_history(
 @app.get("/api/triage/queue", response_model=list[TriageQueueItem])
 def triage_queue(
     status_filter: str | None = Query(default=None, alias="status"),
-    target_type: str = Query(default="readmission"),
+    target_type: str = Query(default="readmission", pattern="^(readmission|deterioration|adverse_event)$"),
     db: Session = Depends(get_db),
     actor: User = Depends(require_roles("admin", "clinician", "analyst", "viewer")),
 ) -> list[TriageQueueItem]:
@@ -614,7 +614,7 @@ def triage_queue(
 
 @app.get("/api/triage/watchlist", response_model=list[TriageQueueItem])
 def high_risk_watchlist(
-    target_type: str = Query(default="readmission"),
+    target_type: str = Query(default="readmission", pattern="^(readmission|deterioration|adverse_event)$"),
     db: Session = Depends(get_db),
     actor: User = Depends(require_roles("admin", "clinician", "analyst", "viewer")),
 ) -> list[TriageQueueItem]:
@@ -650,7 +650,7 @@ def high_risk_watchlist(
 def filter_cohort(
     review_status: str | None = Query(default=None),
     risk_category: str | None = Query(default=None),
-    target_type: str = Query(default="readmission"),
+    target_type: str = Query(default="readmission", pattern="^(readmission|deterioration|adverse_event)$"),
     db: Session = Depends(get_db),
     _: User = Depends(require_roles("admin", "clinician", "analyst", "viewer")),
 ) -> list[CohortPatientRead]:
@@ -818,7 +818,7 @@ def list_review_notes(
 
 @app.get("/api/evaluation/model-comparison", response_model=ModelComparisonRead)
 def model_comparison(
-    target_type: str = Query(default="readmission"),
+    target_type: str = Query(default="readmission", pattern="^(readmission|deterioration|adverse_event)$"),
     db: Session = Depends(get_db),
     actor: User = Depends(require_roles("admin", "analyst")),
 ) -> ModelComparisonRead:
@@ -831,7 +831,7 @@ def model_comparison(
 
 @app.post("/api/evaluation/runs", response_model=EvaluationRunRead, status_code=status.HTTP_201_CREATED)
 def create_evaluation_run(
-    target_type: str = Query(default="readmission"),
+    target_type: str = Query(default="readmission", pattern="^(readmission|deterioration|adverse_event)$"),
     threshold: float = Query(default=DEFAULT_THRESHOLD, ge=0.1, le=0.95),
     db: Session = Depends(get_db),
     actor: User = Depends(require_roles("admin", "analyst")),

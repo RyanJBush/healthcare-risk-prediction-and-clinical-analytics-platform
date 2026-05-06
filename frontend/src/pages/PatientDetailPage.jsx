@@ -101,6 +101,7 @@ export default function PatientDetailPage({ token }) {
         token,
       )
       await loadPatientContext()
+      setError('')
       setInlineMessage('Tiered prediction completed and refreshed.')
     } catch (predictError) {
       setError(predictError.message || 'Unable to run prediction.')
@@ -125,6 +126,7 @@ export default function PatientDetailPage({ token }) {
         token,
       )
       await loadPatientContext()
+      setError('')
       setInlineMessage(`Review status updated to ${nextStatus}.`)
     } catch (statusError) {
       setError(statusError.message || 'Unable to update review status.')
@@ -151,6 +153,7 @@ export default function PatientDetailPage({ token }) {
       )
       setObservationForm(blankObservation)
       await loadPatientContext()
+      setError('')
       setInlineMessage('Observation added and risk recalculated.')
     } catch (observationError) {
       setError(observationError.message || 'Unable to save observation.')
@@ -179,6 +182,7 @@ export default function PatientDetailPage({ token }) {
       )
       setNoteForm(blankNote)
       await loadPatientContext()
+      setError('')
       setInlineMessage('Review note saved.')
     } catch (noteError) {
       setError(noteError.message || 'Unable to save review note.')

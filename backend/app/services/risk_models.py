@@ -69,6 +69,16 @@ def _build_models() -> list[tuple[str, object]]:
     ]
 
 
+def compare_patient_risk_models(
+    patients: list[Patient],
+    patient: Patient,
+    target_type: str = "readmission",
+) -> list[ModelRiskPrediction]:
+    # Exclude the index patient from training to avoid target leakage in patient-level scoring.
+    if target_type not in {"readmission", "deterioration", "adverse_event"}:
+        return []
+
+    eligible = [entry for entry in patients if entry.id != patient.id and entry.has_historical_outcome is not None]
 def compare_patient_risk_models(patients: list[Patient], patient: Patient) -> list[ModelRiskPrediction]:
     # Exclude the index patient from training to avoid target leakage in patient-level scoring.
     eligible = [entry for entry in patients if entry.id != patient.id and entry.has_historical_outcome in {True, False}]

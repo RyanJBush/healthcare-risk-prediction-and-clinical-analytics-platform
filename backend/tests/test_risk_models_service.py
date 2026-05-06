@@ -33,3 +33,12 @@ def test_risk_category_boundaries() -> None:
     assert _risk_category(0.80) == "high"
     assert _risk_category(0.60) == "medium"
     assert _risk_category(0.40) == "low"
+
+
+def test_compare_patient_risk_models_rejects_unknown_target() -> None:
+    training = [_patient(i, high_risk=i % 2 == 0) for i in range(1, 15)]
+    target = _patient(99, high_risk=True)
+
+    predictions = compare_patient_risk_models(training + [target], target, target_type="unknown_target")
+
+    assert predictions == []
