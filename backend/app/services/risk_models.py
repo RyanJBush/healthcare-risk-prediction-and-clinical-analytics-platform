@@ -79,6 +79,9 @@ def compare_patient_risk_models(
         return []
 
     eligible = [entry for entry in patients if entry.id != patient.id and entry.has_historical_outcome is not None]
+def compare_patient_risk_models(patients: list[Patient], patient: Patient) -> list[ModelRiskPrediction]:
+    # Exclude the index patient from training to avoid target leakage in patient-level scoring.
+    eligible = [entry for entry in patients if entry.id != patient.id and entry.has_historical_outcome in {True, False}]
     if len(eligible) < MIN_TRAINING_PATIENTS:
         return []
 
