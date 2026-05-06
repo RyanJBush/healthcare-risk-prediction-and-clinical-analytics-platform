@@ -5,11 +5,15 @@ from dataclasses import dataclass
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 from app.models import Patient
 
 FEATURE_COLUMNS = ["age", "bmi", "blood_pressure", "cholesterol", "glucose", "smoker"]
 MODEL_THRESHOLD = 0.55
+HIGH_RISK_THRESHOLD = 0.75
+MIN_TRAINING_PATIENTS = 8
 
 
 @dataclass
@@ -20,7 +24,7 @@ class ModelRiskPrediction:
 
 
 def _risk_category(score: float, threshold: float = MODEL_THRESHOLD) -> str:
-    if score >= 0.75:
+    if score >= HIGH_RISK_THRESHOLD:
         return "high"
     if score >= threshold:
         return "medium"
@@ -44,10 +48,31 @@ def _matrix(patients: list[Patient]) -> np.ndarray:
     )
 
 
+def _build_models() -> list[tuple[str, object]]:
+    # Logistic regression is the interpretable baseline model.
+    logistic_baseline = Pipeline(
+        steps=[
+            ("scaler", StandardScaler()),
+            ("model", LogisticRegression(max_iter=500, class_weight="balanced", random_state=42)),
+        ]
+    )
+    tree_model = RandomForestClassifier(
+        n_estimators=200,
+        max_depth=6,
+        min_samples_leaf=2,
+        class_weight="balanced",
+        random_state=42,
+    )
+    return [
+        ("logistic_regression", logistic_baseline),
+        ("random_forest", tree_model),
+    ]
+
+
 def compare_patient_risk_models(patients: list[Patient], patient: Patient) -> list[ModelRiskPrediction]:
     # Exclude the index patient from training to avoid target leakage in patient-level scoring.
     eligible = [entry for entry in patients if entry.id != patient.id and entry.has_historical_outcome in {True, False}]
-    if len(eligible) < 8:
+    if len(eligible) < MIN_TRAINING_PATIENTS:
         return []
 
     x_train = _matrix(eligible)
@@ -56,13 +81,8 @@ def compare_patient_risk_models(patients: list[Patient], patient: Patient) -> li
         return []
 
     x_target = _matrix([patient])
-    models = [
-        ("logistic_regression", LogisticRegression(max_iter=250, class_weight="balanced", random_state=42)),
-        ("random_forest", RandomForestClassifier(n_estimators=120, class_weight="balanced", random_state=42)),
-    ]
-
     predictions: list[ModelRiskPrediction] = []
-    for model_name, model in models:
+    for model_name, model in _build_models():
         model.fit(x_train, y_train)
         score = float(model.predict_proba(x_target)[0][1])
         predictions.append(
