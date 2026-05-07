@@ -1,6 +1,6 @@
 from collections import Counter
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import csv
 from io import StringIO
 import json
@@ -71,7 +71,9 @@ from app.schemas import (
     TimelineEventRead,
     FollowUpRecommendationRead,
     FollowUpQuestionsRead,
+    DriftDetectionRead,
     NoteSummaryRead,
+    PredictionLogItemRead,
 )
 from app.security import create_access_token, hash_password, require_roles, verify_password
 from app.services.evaluation import DEFAULT_THRESHOLD, evaluate_models
@@ -85,7 +87,7 @@ from app.services.summaries import (
     build_patient_summary,
 )
 from app.services.training import run_offline_training
-from app.services.risk_models import compare_patient_risk_models
+from app.services.risk_models import compare_patient_risk_models, model_feature_importance_snapshot
 
 
 @asynccontextmanager
@@ -448,6 +450,7 @@ def compare_patient_models(
 
     training_patients = db.query(Patient).all()
     model_predictions = compare_patient_risk_models(training_patients, patient, target_type=target_type)
+    feature_importance_by_model = model_feature_importance_snapshot(training_patients, target_type=target_type)
     _audit(db, "compare_patient_models", "patient", str(patient.id), actor, {"models": len(model_predictions), "target_type": target_type})
     db.commit()
 
@@ -455,6 +458,7 @@ def compare_patient_models(
         patient_id=patient.id,
         target_type=target_type,
         models=model_predictions,
+        feature_importance_by_model=feature_importance_by_model,
     )
 
 @app.post("/api/jobs/batch-score", response_model=BatchScoringJobRead, status_code=status.HTTP_201_CREATED)
@@ -980,6 +984,107 @@ def list_model_config_changes(
     if target_type:
         query = query.filter(ModelConfigChange.target_type == target_type)
     return query.order_by(ModelConfigChange.created_at.desc()).limit(limit).all()
+
+
+@app.get("/api/monitoring/drift", response_model=DriftDetectionRead)
+def model_drift_monitoring(
+    target_type: str = Query(default="readmission", pattern="^(readmission|deterioration|adverse_event)$"),
+    recent_window_days: int = Query(default=7, ge=1, le=30),
+    baseline_window_days: int = Query(default=30, ge=7, le=180),
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_roles("admin", "clinician", "analyst")),
+) -> DriftDetectionRead:
+    now = datetime.now(timezone.utc)
+    baseline_start = now - timedelta(days=baseline_window_days + recent_window_days)
+    recent_start = now - timedelta(days=recent_window_days)
+
+    baseline_predictions = (
+        db.query(Prediction)
+        .filter(
+            Prediction.target_type == target_type,
+            Prediction.created_at >= baseline_start,
+            Prediction.created_at < recent_start,
+        )
+        .all()
+    )
+    recent_predictions = (
+        db.query(Prediction)
+        .filter(Prediction.target_type == target_type, Prediction.created_at >= recent_start)
+        .all()
+    )
+
+    baseline_avg = (
+        float(sum(prediction.risk_score for prediction in baseline_predictions) / len(baseline_predictions))
+        if baseline_predictions
+        else 0.0
+    )
+    recent_avg = (
+        float(sum(prediction.risk_score for prediction in recent_predictions) / len(recent_predictions))
+        if recent_predictions
+        else 0.0
+    )
+    baseline_high_risk_rate = (
+        float(sum(1 for prediction in baseline_predictions if prediction.risk_category == "high") / len(baseline_predictions))
+        if baseline_predictions
+        else 0.0
+    )
+    recent_high_risk_rate = (
+        float(sum(1 for prediction in recent_predictions if prediction.risk_category == "high") / len(recent_predictions))
+        if recent_predictions
+        else 0.0
+    )
+
+    delta = abs(recent_avg - baseline_avg)
+    high_risk_rate_delta = abs(recent_high_risk_rate - baseline_high_risk_rate)
+    drift_flag = delta >= 0.08 or high_risk_rate_delta >= 0.15
+    _audit(
+        db,
+        "view_model_drift",
+        "monitoring",
+        target_type,
+        actor,
+        {"drift_flag": drift_flag, "risk_delta": round(delta, 4), "high_risk_rate_delta": round(high_risk_rate_delta, 4)},
+    )
+    db.commit()
+
+    return DriftDetectionRead(
+        target_type=target_type,
+        baseline_window_days=baseline_window_days,
+        recent_window_days=recent_window_days,
+        baseline_avg_risk=round(baseline_avg, 4),
+        recent_avg_risk=round(recent_avg, 4),
+        absolute_delta=round(delta, 4),
+        high_risk_rate_delta=round(high_risk_rate_delta, 4),
+        drift_flag=drift_flag,
+        sample_sizes={"baseline": len(baseline_predictions), "recent": len(recent_predictions)},
+    )
+
+
+@app.get("/api/monitoring/predictions", response_model=list[PredictionLogItemRead])
+def list_prediction_log(
+    target_type: str | None = Query(default=None, pattern="^(readmission|deterioration|adverse_event)$"),
+    limit: int = Query(default=50, ge=1, le=500),
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_roles("admin", "clinician", "analyst")),
+) -> list[PredictionLogItemRead]:
+    query = db.query(Prediction).order_by(Prediction.created_at.desc())
+    if target_type:
+        query = query.filter(Prediction.target_type == target_type)
+    predictions = query.limit(limit).all()
+    _audit(db, "view_prediction_log", "monitoring", target_type or "all", actor, {"count": len(predictions)})
+    db.commit()
+    return [
+        PredictionLogItemRead(
+            prediction_id=prediction.id,
+            patient_id=prediction.patient_id,
+            target_type=prediction.target_type,
+            risk_score=prediction.risk_score,
+            risk_category=prediction.risk_category,
+            model_version=prediction.model_version,
+            created_at=prediction.created_at,
+        )
+        for prediction in predictions
+    ]
 
 
 @app.post("/api/access/grants", response_model=PatientAccessGrantRead, status_code=status.HTTP_201_CREATED)

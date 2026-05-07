@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { apiRequest } from '../api'
@@ -16,29 +16,52 @@ const blankPatient = {
 
 export default function PatientsPage({ token }) {
   const [patients, setPatients] = useState([])
+  const [cohortRows, setCohortRows] = useState([])
   const [formData, setFormData] = useState(blankPatient)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [targetType, setTargetType] = useState('readmission')
+  const [highRiskOnly, setHighRiskOnly] = useState(false)
 
   const loadPatients = useCallback(() => {
     setLoading(true)
-    apiRequest('/api/patients', {}, token)
-      .then((data) => {
-        setPatients(data)
+    Promise.all([
+      apiRequest('/api/patients', {}, token),
+      apiRequest(`/api/cohorts/filter?target_type=${targetType}`, {}, token),
+    ])
+      .then(([patientRows, cohortData]) => {
+        setPatients(patientRows)
+        setCohortRows(cohortData)
         setError('')
       })
       .catch((loadError) => {
         setPatients([])
+        setCohortRows([])
         setError(loadError.message || 'Unable to load patients.')
       })
       .finally(() => setLoading(false))
-  }, [token])
+  }, [targetType, token])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     loadPatients()
   }, [loadPatients])
+
+  const riskByPatientId = useMemo(() => new Map(cohortRows.map((row) => [row.patient_id, row])), [cohortRows])
+  const displayPatients = useMemo(
+    () =>
+      patients.filter((patient) => {
+        if (!highRiskOnly) return true
+        return riskByPatientId.get(patient.id)?.risk_category === 'high'
+      }),
+    [patients, highRiskOnly, riskByPatientId],
+  )
+  const avgRisk = useMemo(
+    () => (cohortRows.length ? cohortRows.reduce((sum, row) => sum + row.risk_score, 0) / cohortRows.length : 0),
+    [cohortRows],
+  )
+  const highRiskCount = useMemo(() => cohortRows.filter((row) => row.risk_category === 'high').length, [cohortRows])
 
   async function handleSubmit(event) {
     event.preventDefault()
@@ -66,6 +89,34 @@ export default function PatientsPage({ token }) {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Patients</h1>
       {error ? <p className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
+      <div className="grid gap-3 md:grid-cols-3">
+        <div className="rounded-xl bg-white p-4 shadow">
+          <p className="text-sm text-slate-500">Average {targetType} risk</p>
+          <p className="mt-1 text-2xl font-semibold">{avgRisk.toFixed(2)}</p>
+        </div>
+        <div className="rounded-xl bg-white p-4 shadow">
+          <p className="text-sm text-slate-500">High-risk patients</p>
+          <p className="mt-1 text-2xl font-semibold">{highRiskCount}</p>
+        </div>
+        <div className="rounded-xl bg-white p-4 shadow">
+          <p className="text-sm text-slate-500">Patients with scores</p>
+          <p className="mt-1 text-2xl font-semibold">{cohortRows.length}</p>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-3 rounded-xl bg-white p-4 shadow">
+        <label className="text-sm">
+          Target
+          <select value={targetType} onChange={(event) => setTargetType(event.target.value)} className="ml-2 rounded border border-slate-300 px-2 py-1">
+            <option value="readmission">readmission</option>
+            <option value="deterioration">deterioration</option>
+            <option value="adverse_event">adverse_event</option>
+          </select>
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={highRiskOnly} onChange={(event) => setHighRiskOnly(event.target.checked)} />
+          Show high-risk only
+        </label>
+      </div>
       <div className="grid gap-4 md:grid-cols-2">
         <form onSubmit={handleSubmit} className="space-y-3 rounded-xl bg-white p-4 shadow">
           <h2 className="text-lg font-medium">Add Patient</h2>
@@ -119,7 +170,9 @@ export default function PatientsPage({ token }) {
           <h2 className="mb-3 text-lg font-medium">Patient Profiles</h2>
           <ul className="space-y-2">
             {loading ? <li className="rounded border border-slate-200 p-3 text-slate-500">Loading patients…</li> : null}
-            {patients.map((patient) => (
+            {displayPatients.map((patient) => {
+              const riskRow = riskByPatientId.get(patient.id)
+              return (
               <li key={patient.id} className="rounded border border-slate-200 p-3">
                 <div className="flex items-center justify-between">
                   <div>
@@ -127,14 +180,18 @@ export default function PatientsPage({ token }) {
                     <p className="text-sm text-slate-500">
                       Age {patient.age}, BMI {patient.bmi}, BP {patient.blood_pressure}
                     </p>
+                    <p className="text-sm text-slate-600">
+                      Risk: {riskRow ? `${riskRow.risk_score.toFixed(2)} (${riskRow.risk_category})` : 'No score yet'}
+                    </p>
                   </div>
                   <Link to={`/patients/${patient.id}`} className="text-sm text-blue-700 hover:underline">
                     View
                   </Link>
                 </div>
               </li>
-            ))}
-            {!loading && patients.length === 0 ? (
+              )
+            })}
+            {!loading && displayPatients.length === 0 ? (
               <li className="rounded border border-slate-200 p-3 text-slate-500">No patients yet. Add one to begin.</li>
             ) : null}
           </ul>

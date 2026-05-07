@@ -84,6 +84,8 @@ def test_evaluate_models_returns_sorted_metrics_and_subgroups(monkeypatch) -> No
 
     assert [model["model_name"] for model in result["models"]] == ["lower_cost", "higher_cost"]
     assert result["models"][0]["cost_score"] <= result["models"][1]["cost_score"]
+    assert "accuracy" in result["models"][0]
+    assert result["models"][0]["confusion_matrix"]["tp"] >= 0
     assert result["subgroup_outcomes"]["smoker"] == 1.0
     assert result["subgroup_outcomes"]["non_smoker"] == 0.0
     assert result["threshold_sweep"] == [

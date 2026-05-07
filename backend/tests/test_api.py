@@ -198,6 +198,9 @@ def test_phase1_tiered_prediction_and_workflow_flow() -> None:
         assert model_eval.status_code == 200
         assert "models" in model_eval.json()
         assert "subgroup_outcomes" in model_eval.json()
+        if model_eval.json()["models"]:
+            assert "accuracy" in model_eval.json()["models"][0]
+            assert "confusion_matrix" in model_eval.json()["models"][0]
 
         model_registry = client.get("/api/model-registry", headers=clinician_headers)
         assert model_registry.status_code == 200
@@ -233,6 +236,13 @@ def test_phase1_tiered_prediction_and_workflow_flow() -> None:
         evaluation_run_list = client.get("/api/evaluation/runs?limit=10", headers=analyst_headers)
         assert evaluation_run_list.status_code == 200
         assert len(evaluation_run_list.json()) >= 1
+
+        drift_signal = client.get("/api/monitoring/drift?target_type=readmission", headers=analyst_headers)
+        assert drift_signal.status_code == 200
+        assert "drift_flag" in drift_signal.json()
+
+        prediction_log = client.get("/api/monitoring/predictions?target_type=readmission&limit=5", headers=analyst_headers)
+        assert prediction_log.status_code == 200
 
         training_run = client.post("/api/training/runs", headers=analyst_headers, json={"target_type": "readmission"})
         assert training_run.status_code == 201

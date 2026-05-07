@@ -9,6 +9,8 @@ export default function RiskAnalysisPage({ token }) {
   const [modelCards, setModelCards] = useState([])
   const [disclaimer, setDisclaimer] = useState(null)
   const [evaluationRun, setEvaluationRun] = useState(null)
+  const [driftSignal, setDriftSignal] = useState(null)
+  const [predictionLog, setPredictionLog] = useState([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -40,10 +42,18 @@ export default function RiskAnalysisPage({ token }) {
       setPatients(withScores)
 
       try {
-        const comparison = await apiRequest(`/api/evaluation/model-comparison?target_type=${targetType}`, {}, token)
+        const [comparison, drift, logs] = await Promise.all([
+          apiRequest(`/api/evaluation/model-comparison?target_type=${targetType}`, {}, token),
+          apiRequest(`/api/monitoring/drift?target_type=${targetType}`, {}, token),
+          apiRequest(`/api/monitoring/predictions?target_type=${targetType}&limit=30`, {}, token),
+        ])
         setModelComparison(comparison)
+        setDriftSignal(drift)
+        setPredictionLog(logs)
       } catch (evaluationError) {
         setModelComparison(null)
+        setDriftSignal(null)
+        setPredictionLog([])
         setRestrictedMessage(evaluationError.message || 'Evaluation comparison unavailable for this role.')
       }
     } catch (loadError) {
@@ -141,8 +151,11 @@ export default function RiskAnalysisPage({ token }) {
                     <th className="px-2 py-1">Model</th>
                     <th className="px-2 py-1">ROC AUC</th>
                     <th className="px-2 py-1">PR AUC</th>
+                    <th className="px-2 py-1">Accuracy</th>
                     <th className="px-2 py-1">Precision</th>
                     <th className="px-2 py-1">Recall</th>
+                    <th className="px-2 py-1">F1</th>
+                    <th className="px-2 py-1">Confusion Matrix</th>
                     <th className="px-2 py-1">Cost</th>
                   </tr>
                 </thead>
@@ -152,8 +165,15 @@ export default function RiskAnalysisPage({ token }) {
                       <td className="px-2 py-1">{model.model_name}</td>
                       <td className="px-2 py-1">{model.roc_auc.toFixed(2)}</td>
                       <td className="px-2 py-1">{model.pr_auc.toFixed(2)}</td>
+                      <td className="px-2 py-1">{model.accuracy.toFixed(2)}</td>
                       <td className="px-2 py-1">{model.precision.toFixed(2)}</td>
                       <td className="px-2 py-1">{model.recall.toFixed(2)}</td>
+                      <td className="px-2 py-1">{model.f1.toFixed(2)}</td>
+                      <td className="px-2 py-1 text-xs text-slate-600">
+                        TN {model.confusion_matrix?.tn ?? 0} / FP {model.confusion_matrix?.fp ?? 0}
+                        <br />
+                        FN {model.confusion_matrix?.fn ?? 0} / TP {model.confusion_matrix?.tp ?? 0}
+                      </td>
                       <td className="px-2 py-1">{model.cost_score.toFixed(2)}</td>
                     </tr>
                   ))}
@@ -180,6 +200,62 @@ export default function RiskAnalysisPage({ token }) {
           )}
         </section>
       </div>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="rounded-xl bg-white p-4 shadow">
+          <h2 className="mb-4 text-lg font-medium">Feature Importance (Top Model)</h2>
+          {modelComparison?.models?.[0]?.feature_importance?.length ? (
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={modelComparison.models[0].feature_importance}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="feature" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="importance" fill="#0f766e" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">Feature importance is unavailable for this evaluation run.</p>
+          )}
+        </section>
+        <section className="rounded-xl bg-white p-4 shadow">
+          <h2 className="mb-4 text-lg font-medium">Model Drift Signal</h2>
+          {driftSignal ? (
+            <div className="space-y-3 text-sm">
+              <p className={`rounded border px-3 py-2 ${driftSignal.drift_flag ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-700'}`}>
+                {driftSignal.drift_flag ? 'Potential drift detected' : 'No meaningful drift detected'}
+              </p>
+              <p>Baseline avg risk: {driftSignal.baseline_avg_risk.toFixed(2)}</p>
+              <p>Recent avg risk: {driftSignal.recent_avg_risk.toFixed(2)}</p>
+              <p>Absolute delta: {driftSignal.absolute_delta.toFixed(3)}</p>
+              <p>High-risk rate delta: {driftSignal.high_risk_rate_delta.toFixed(3)}</p>
+              <p className="text-xs text-slate-500">
+                Samples — baseline: {driftSignal.sample_sizes?.baseline ?? 0}, recent: {driftSignal.sample_sizes?.recent ?? 0}
+              </p>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500">Drift monitoring unavailable for this role.</p>
+          )}
+        </section>
+      </div>
+      <section className="rounded-xl bg-white p-4 shadow">
+        <h2 className="mb-4 text-lg font-medium">Recent Prediction Log</h2>
+        <ul className="space-y-2 text-sm">
+          {predictionLog.slice(0, 10).map((entry) => (
+            <li key={entry.prediction_id} className="rounded border border-slate-200 p-3">
+              <p className="font-medium">
+                Patient #{entry.patient_id} — {entry.target_type}
+              </p>
+              <p>
+                Risk {entry.risk_score.toFixed(2)} ({entry.risk_category}) • {entry.model_version}
+              </p>
+              <p className="text-xs text-slate-500">{new Date(entry.created_at).toLocaleString()}</p>
+            </li>
+          ))}
+          {predictionLog.length === 0 ? <li className="text-slate-500">No prediction logs available.</li> : null}
+        </ul>
+      </section>
       <section className="rounded-xl bg-white p-4 shadow">
         <h2 className="mb-4 text-lg font-medium">Model Cards</h2>
         <div className="grid gap-3 md:grid-cols-2">
