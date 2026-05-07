@@ -83,12 +83,14 @@ class ModelRiskPredictionRead(BaseModel):
     model_name: str
     risk_score: float
     risk_category: str
+    top_contributing_features: list[dict[str, float | str]] = Field(default_factory=list)
 
 
 class PatientRiskModelComparisonRead(BaseModel):
     patient_id: int
     target_type: TargetType
     models: list[ModelRiskPredictionRead]
+    feature_importance_by_model: dict[str, list[dict[str, float | str]]] = Field(default_factory=dict)
 
 
 class ReviewStatusUpdate(BaseModel):
@@ -216,14 +218,17 @@ class ModelEvaluationItem(BaseModel):
     positive_rate: float
     roc_auc: float
     pr_auc: float
+    accuracy: float = 0.0
     precision: float
     recall: float
     f1: float
     brier: float
+    confusion_matrix: dict[str, int] = Field(default_factory=dict)
     false_negative_count: int
     false_positive_count: int
     threshold: float
     cost_score: float
+    feature_importance: list[dict[str, float | str]] = Field(default_factory=list)
 
 
 class ModelComparisonRead(BaseModel):
@@ -382,6 +387,28 @@ class CohortPatientRead(BaseModel):
     review_status: str
     risk_category: str
     risk_score: float
+
+
+class DriftDetectionRead(BaseModel):
+    target_type: TargetType
+    baseline_window_days: int
+    recent_window_days: int
+    baseline_avg_risk: float
+    recent_avg_risk: float
+    absolute_delta: float
+    high_risk_rate_delta: float
+    drift_flag: bool
+    sample_sizes: dict[str, int]
+
+
+class PredictionLogItemRead(BaseModel):
+    prediction_id: int
+    patient_id: int
+    target_type: TargetType
+    risk_score: float
+    risk_category: str
+    model_version: str
+    created_at: datetime
 
 
 class NoteSummaryRead(BaseModel):

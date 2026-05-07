@@ -80,6 +80,7 @@ API_BASE=http://localhost:8000 SEED_COUNT=75 SEED_VALUE=7 ./scripts/bootstrap_de
 - `GET /api/patients/{id}/observations`
 - `POST /api/predict`
 - `POST /api/predict/tiered`
+- `GET /api/predict/compare/{patient_id}`
 - `POST /api/jobs/batch-score`
 - `GET /api/jobs/batch-score/{job_id}`
 - `GET /api/predictions/{patient_id}`
@@ -102,6 +103,8 @@ API_BASE=http://localhost:8000 SEED_COUNT=75 SEED_VALUE=7 ./scripts/bootstrap_de
 - `GET /api/model-registry`
 - `POST /api/model-config/thresholds`
 - `GET /api/model-config/changes`
+- `GET /api/monitoring/drift`
+- `GET /api/monitoring/predictions`
 - `GET /api/cohorts/handoff-summary`
 - `GET /api/reports/cohort.csv`
 - `POST /api/demo/load-seed`
@@ -129,3 +132,4 @@ make test
 - Guided walkthrough: `docs/demo-script.md`
 - Deployment/operations guide: `docs/deployment.md`
 - One-command cohort bootstrap: `make demo-bootstrap`
+- For model explainability and monitoring demos, open **Risk Analysis** and **Patient Detail** pages after running `make demo-bootstrap`.

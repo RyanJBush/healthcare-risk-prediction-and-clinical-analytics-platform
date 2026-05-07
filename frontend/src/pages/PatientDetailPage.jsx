@@ -28,6 +28,7 @@ export default function PatientDetailPage({ token }) {
   const [observations, setObservations] = useState([])
   const [notes, setNotes] = useState([])
   const [timeline, setTimeline] = useState([])
+  const [modelComparison, setModelComparison] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [busyAction, setBusyAction] = useState('')
@@ -62,13 +63,14 @@ export default function PatientDetailPage({ token }) {
     setError('')
     setInlineMessage('')
     try {
-      const [nextPatient, nextPredictions, nextExplanations, nextObservations, nextNotes, nextTimeline] = await Promise.all([
+      const [nextPatient, nextPredictions, nextExplanations, nextObservations, nextNotes, nextTimeline, nextComparison] = await Promise.all([
         apiRequest(`/api/patients/${id}`, {}, token),
         apiRequest(`/api/predictions/${id}`, {}, token),
         apiRequest(`/api/explanations/${id}`, {}, token),
         apiRequest(`/api/patients/${id}/observations`, {}, token),
         apiRequest(`/api/patients/${id}/notes`, {}, token),
         apiRequest(`/api/patients/${id}/timeline`, {}, token),
+        apiRequest(`/api/predict/compare/${id}?target_type=readmission`, {}, token),
       ])
       setPatient(nextPatient)
       setPredictions(nextPredictions)
@@ -76,6 +78,7 @@ export default function PatientDetailPage({ token }) {
       setObservations(nextObservations)
       setNotes(nextNotes)
       setTimeline(nextTimeline)
+      setModelComparison(nextComparison)
     } catch (loadError) {
       setError(loadError.message || 'Unable to load patient context.')
     } finally {
@@ -336,6 +339,31 @@ export default function PatientDetailPage({ token }) {
           </ul>
         </section>
       </div>
+      <section className="rounded-xl bg-white p-4 shadow">
+        <h2 className="mb-3 text-lg font-medium">Why this prediction? (Model Explainability)</h2>
+        {modelComparison?.models?.length ? (
+          <div className="grid gap-3 lg:grid-cols-2">
+            {modelComparison.models.map((model) => (
+              <article key={model.model_name} className="rounded border border-slate-200 p-3">
+                <p className="font-medium">{model.model_name}</p>
+                <p className="text-sm text-slate-600">
+                  Risk {model.risk_score.toFixed(2)} ({model.risk_category})
+                </p>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {(model.top_contributing_features || []).map((feature) => (
+                    <li key={`${model.model_name}-${feature.feature}`}>
+                      {String(feature.feature).replaceAll('_', ' ')} ({Number(feature.impact || 0).toFixed(2)})
+                    </li>
+                  ))}
+                  {!model.top_contributing_features?.length ? <li className="text-slate-500">No feature attributions available.</li> : null}
+                </ul>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-slate-500">Model comparison is unavailable for this patient.</p>
+        )}
+      </section>
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="rounded-xl bg-white p-4 shadow">
           <h2 className="mb-3 text-lg font-medium">Add Observation</h2>

@@ -6,42 +6,32 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
+    accuracy_score,
     average_precision_score,
     brier_score_loss,
+    confusion_matrix,
     f1_score,
     precision_score,
     recall_score,
     roc_auc_score,
 )
+from sklearn.pipeline import Pipeline
 
 from app.models import Patient
+from app.services.feature_engineering import FEATURE_COLUMNS, build_feature_matrix
 
 try:
     from xgboost import XGBClassifier
 except Exception:  # pragma: no cover - optional dependency guard
     XGBClassifier = None
 
-FEATURE_COLUMNS = ["age", "bmi", "blood_pressure", "cholesterol", "glucose", "smoker"]
 DEFAULT_THRESHOLD = 0.55
 FALSE_NEGATIVE_COST = 5.0
 FALSE_POSITIVE_COST = 1.0
 
 
 def _as_matrix(patients: list[Patient]) -> tuple[np.ndarray, np.ndarray]:
-    x = np.array(
-        [
-            [
-                float(patient.age),
-                float(patient.bmi),
-                float(patient.blood_pressure),
-                float(patient.cholesterol),
-                float(patient.glucose),
-                float(bool(patient.smoker)),
-            ]
-            for patient in patients
-        ],
-        dtype=float,
-    )
+    x = build_feature_matrix(patients)
     y = np.array([1 if patient.has_historical_outcome else 0 for patient in patients], dtype=int)
     return x, y
 
@@ -92,6 +82,27 @@ def _safe_pr_auc(y_true: np.ndarray, y_score: np.ndarray) -> float:
     return float(average_precision_score(y_true, y_score))
 
 
+def _importance_for_model(model: object) -> list[dict[str, float | str]]:
+    estimator = model.named_steps["model"] if isinstance(model, Pipeline) else model
+    values = None
+    if hasattr(estimator, "coef_"):
+        values = np.asarray(estimator.coef_).ravel()
+    elif hasattr(estimator, "feature_importances_"):
+        values = np.asarray(estimator.feature_importances_).ravel()
+    if values is None:
+        return []
+    ranked = sorted(
+        [
+            {"feature": feature, "importance": round(float(values[idx]), 4)}
+            for idx, feature in enumerate(FEATURE_COLUMNS)
+            if idx < len(values)
+        ],
+        key=lambda item: abs(float(item["importance"])),
+        reverse=True,
+    )
+    return ranked[:6]
+
+
 def evaluate_models(patients: list[Patient], threshold: float = DEFAULT_THRESHOLD) -> dict:
     eligible = [patient for patient in patients if patient.has_historical_outcome in {True, False}]
     if len(eligible) < 8:
@@ -124,6 +135,7 @@ def evaluate_models(patients: list[Patient], threshold: float = DEFAULT_THRESHOL
         false_negatives = int(np.sum((y_test == 1) & (labels == 0)))
         false_positives = int(np.sum((y_test == 0) & (labels == 1)))
         cost_score = float((false_negatives * FALSE_NEGATIVE_COST) + (false_positives * FALSE_POSITIVE_COST))
+        tn, fp, fn, tp = confusion_matrix(y_test, labels, labels=[0, 1]).ravel()
 
         model_results.append(
             {
@@ -132,14 +144,17 @@ def evaluate_models(patients: list[Patient], threshold: float = DEFAULT_THRESHOL
                 "positive_rate": round(float(np.mean(y_test)), 4),
                 "roc_auc": round(_safe_roc_auc(y_test, probabilities), 4),
                 "pr_auc": round(_safe_pr_auc(y_test, probabilities), 4),
+                "accuracy": round(float(accuracy_score(y_test, labels)), 4),
                 "precision": round(float(precision_score(y_test, labels, zero_division=0)), 4),
                 "recall": round(float(recall_score(y_test, labels, zero_division=0)), 4),
                 "f1": round(float(f1_score(y_test, labels, zero_division=0)), 4),
                 "brier": round(float(brier_score_loss(y_test, probabilities)), 4),
+                "confusion_matrix": {"tn": int(tn), "fp": int(fp), "fn": int(fn), "tp": int(tp)},
                 "false_negative_count": false_negatives,
                 "false_positive_count": false_positives,
                 "threshold": threshold,
                 "cost_score": round(cost_score, 4),
+                "feature_importance": _importance_for_model(model),
             }
         )
 
