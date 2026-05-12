@@ -14,8 +14,8 @@ if db_url.startswith("sqlite") and "///" in db_url:
     if db_file.exists():
         db_file.unlink()
 
-from app.main import app
 from app.database import SessionLocal
+from app.main import app
 from app.models import Patient, Prediction
 
 

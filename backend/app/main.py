@@ -1,13 +1,13 @@
-from collections import Counter
-from contextlib import asynccontextmanager
-from dataclasses import asdict
-from datetime import datetime, timedelta, timezone
 import csv
-from io import StringIO
 import json
 import logging
 import time
 import uuid
+from collections import Counter
+from contextlib import asynccontextmanager
+from dataclasses import asdict
+from datetime import datetime, timedelta, timezone
+from io import StringIO
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,58 +27,59 @@ from app.models import (
     Patient,
     PatientAccessGrant,
     Prediction,
-    User,
+    ReviewNote,
     TrainingRun,
+    User,
 )
-from app.models import ReviewNote
 from app.schemas import (
     AiPatientSummaryRead,
     AuditLogRead,
     BatchScoringJobRead,
     BatchScoringRequest,
     CohortMetrics,
+    CohortPatientRead,
+    DisclaimerRead,
+    DriftDetectionRead,
     EvaluationRunRead,
-    ExplanationRead,
     ExplanationHistoryItem,
+    ExplanationRead,
+    FollowUpQuestionsRead,
+    FollowUpRecommendationRead,
     HandoffSummaryRead,
     LoginRequest,
     MetricsSummary,
+    ModelCardRead,
     ModelComparisonRead,
     ModelConfigChangeRead,
-    ModelCardRead,
+    NoteSummaryRead,
     ObservationCreate,
     ObservationRead,
-    PatientCreate,
     PatientAccessGrantCreate,
     PatientAccessGrantRead,
+    PatientCreate,
     PatientRead,
-    PredictRequest,
+    PatientRiskModelComparisonRead,
+    PredictionLogItemRead,
     PredictionRead,
-    CohortPatientRead,
+    PredictRequest,
+    RegistryModelRead,
     ReviewNoteCreate,
     ReviewNoteRead,
     ReviewStatusUpdate,
-    TrainingRunRead,
-    TrainingRunRequest,
     SeedLoadRequest,
     SeedLoadResult,
     ThresholdUpdateRequest,
     TieredPredictionRead,
-    PatientRiskModelComparisonRead,
-    Token,
-    TriageQueueItem,
-    DisclaimerRead,
-    RegistryModelRead,
     TimelineEventRead,
-    FollowUpRecommendationRead,
-    FollowUpQuestionsRead,
-    DriftDetectionRead,
-    NoteSummaryRead,
-    PredictionLogItemRead,
+    Token,
+    TrainingRunRead,
+    TrainingRunRequest,
+    TriageQueueItem,
 )
 from app.security import create_access_token, hash_password, require_roles, verify_password
 from app.services.evaluation import DEFAULT_THRESHOLD, evaluate_models
 from app.services.model_registry import build_default_registry
+from app.services.risk_models import compare_patient_risk_models, model_feature_importance_snapshot
 from app.services.seed_loader import generate_seed_patients
 from app.services.summaries import (
     build_follow_up_questions,
@@ -88,7 +89,6 @@ from app.services.summaries import (
     build_patient_summary,
 )
 from app.services.training import run_offline_training
-from app.services.risk_models import compare_patient_risk_models, model_feature_importance_snapshot
 
 
 @asynccontextmanager

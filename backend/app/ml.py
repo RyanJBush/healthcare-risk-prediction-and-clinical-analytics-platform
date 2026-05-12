@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import math
+from dataclasses import dataclass
 
 FEATURE_NAMES = ["age", "bmi", "blood_pressure", "cholesterol", "glucose", "smoker"]
 
