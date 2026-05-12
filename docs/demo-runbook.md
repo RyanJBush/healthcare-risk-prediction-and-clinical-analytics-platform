@@ -1,4 +1,4 @@
-# Cerberus Demo Runbook
+# Cerberus Demo Runbook (Healthcare-Style ML Portfolio)
 
 > **Not for clinical use.** All data is synthetic. This runbook drives a portfolio walkthrough of the local stack — it is not a clinical deployment procedure.
 
@@ -53,7 +53,7 @@ Sign in at <http://localhost:5173> as `clinician / clinician123`.
 2. **Triage** — switch between **Alert Queue** and **High-Risk Watchlist**, filter by target and review status.
 3. Open a patient from the queue.
 
-### Persona B — Clinical Reviewer
+### Persona B — Demo Reviewer
 1. **Patient Detail** — show latest predictions and the SHAP-style explanation snapshot (top factors, reason codes, plain-language rationale).
 2. Add an observation and trigger recalculation.
 3. Update review status (`new` → `reviewed` / `escalated` / `monitored`).
@@ -119,7 +119,7 @@ Both are useful talking points for explaining the design: the CLI proves the sam
 
 - **Workflow readiness** — queue triage → patient deep dive → review action → timeline traceability.
 - **Explainability is first-class** — every score carries a top-factor breakdown and reason codes; reviewers can disagree with the model.
-- **Trust controls visible in the UI** — non-clinical-use disclaimer, model cards, threshold and evaluation views.
+- **Safety framing visible in the UI** — non-clinical-use disclaimer, model cards, threshold and evaluation views.
 - **Responsible-ML scaffolding** — drift endpoint, fairness slice script, model registry, audit log, all in this repo.
 - **Honest framing** — synthetic-only data, no PHI, no clinical validation, not a medical device.
 

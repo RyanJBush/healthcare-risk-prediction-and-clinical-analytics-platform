@@ -7,11 +7,11 @@
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
 ![CI](https://github.com/RyanJBush/Healthcare-risk-prediction-and-clinical-intelligence-platform/actions/workflows/ci.yml/badge.svg)
 
-# Cerberus
+# Cerberus — Healthcare Risk Prediction and Clinical Intelligence Platform
 
-**Healthcare Risk Prediction & Clinical Intelligence Platform — Portfolio Project**
+**Healthcare-style ML Portfolio Demo (Synthetic Data Only)**
 
-> A student portfolio project that scores synthetic patient records with explainable ML, surfaces tiered triage queues, and returns per-feature explanations alongside each risk score. Built to demonstrate how clinical-style AI tools should balance predictive signal with interpretability and responsible-ML practice.
+> A portfolio demo that scores synthetic records with explainable ML, surfaces tiered triage queues, and returns per-feature explanations with each risk score. Built to demonstrate healthcare-style ML UX patterns plus interpretability and responsible-ML documentation.
 
 > [!IMPORTANT]
 > **Not for clinical use.** This is a portfolio / educational project. All data is **synthetic — no PHI, no real patient records**. Cerberus is not a medical device, has not been clinically validated, is not HIPAA-scoped, and must not be used for diagnosis, treatment, or any real-world clinical decision-making.
