@@ -1,10 +1,10 @@
-# API Reference
+# Cerberus API Reference (Portfolio Demo)
 
 FastAPI auto-generates interactive docs at `http://localhost:8000/docs` (Swagger UI) and `http://localhost:8000/redoc` once the backend is running. This document is a curated summary of the most relevant endpoints for portfolio review.
 
 > All examples use **synthetic data**. Nothing in this API is intended for clinical decision-making. Cerberus is not a medical device, has not been clinically validated, and is not HIPAA-scoped.
 
-The backend exposes roughly **49 REST endpoints**. The groups below cover the ones a reviewer is most likely to touch; see the live Swagger UI for the full list.
+The backend exposes roughly **49 REST endpoints**. The groups below cover the ones most useful for portfolio review; see live Swagger for the full list.
 
 ## Authentication
 

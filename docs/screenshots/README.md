@@ -1,4 +1,4 @@
-# Screenshots — UI / Portfolio / Design Preview
+# Cerberus Screenshots — UI / Portfolio / Design Preview
 
 > These are **UI / portfolio / design previews** of the Cerberus dashboard rendered against **synthetic** data on a local development machine. They are not from a deployed or clinical environment, do not reflect real patient outcomes, and are not evidence of clinical validation, HIPAA readiness, or medical-device status.
 >

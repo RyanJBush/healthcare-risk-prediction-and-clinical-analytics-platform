@@ -1,10 +1,10 @@
-# Resume Bullets — Cerberus
+# Resume Bullets — Cerberus (Healthcare-Style ML Portfolio Demo)
 
 ATS-friendly, one-line bullets. Pick 3–5 per role. **Every claim maps to code in this repo.** Use the [Honest framing notes](#honest-framing-notes) at the bottom before you paste anything onto a resume.
 
 ## ATS-friendly headline bullets (pick 5–8)
 
-1. Built a healthcare risk-prediction portfolio platform in **Python (FastAPI)** and **React** that scores **synthetic** patient records across **three clinical risk targets** (readmission, deterioration, adverse event) with explainable, per-feature outputs.
+1. Built a healthcare-style ML portfolio platform in **Python (FastAPI)** and **React** that scores **synthetic** records across **three risk targets** (readmission, deterioration, adverse event) with explainable, per-feature outputs.
 2. Implemented a **tiered ML scoring pipeline** combining a fast weighted heuristic with **scikit-learn LogisticRegression and RandomForestClassifier** models, escalating to the full model only on low-confidence cases.
 3. Integrated **SHAP-style feature attribution** so every risk score returns top contributing factors, reason codes, and a plain-language rationale for human-in-the-loop review.
 4. Designed a **model registry with versioned training runs** (`/api/model-registry`, `/api/training/runs`) so every score is traceable to a specific model version, with persisted training and evaluation history.
