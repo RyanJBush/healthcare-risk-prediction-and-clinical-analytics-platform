@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cerberus Portfolio Preview</title>
+  <style>
+    :root { --bg:#f6fbfb; --card:#ffffff; --ink:#16333a; --muted:#4d6b73; --teal:#0f9da8; --teal-soft:#dff4f5; --line:#d8e8ea; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; background:var(--bg); color:var(--ink); }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 20px; }
+    .hero,.card{ background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:0 8px 24px rgba(10,40,44,.06); }
+    .hero{ padding:28px; margin-top:10px; }
+    h1{ margin:0 0 8px; font-size:clamp(1.8rem,5vw,2.6rem);} .tag{color:var(--muted);margin:0 0 14px;}
+    .pill{display:inline-block;background:var(--teal-soft);color:#0b6a72;padding:8px 12px;border-radius:999px;font-weight:600;font-size:.92rem}
+    .grid{ display:grid; gap:14px; }
+    .pipeline{ margin-top:18px; grid-template-columns:repeat(4,1fr);} .step{padding:14px;text-align:center;font-weight:600}
+    .arrow{position:relative}.arrow:after{content:"→";position:absolute;right:-12px;top:50%;transform:translateY(-50%);color:var(--teal)}
+    .features{ margin-top:18px; grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
+    .card{ padding:18px; }
+    .badges{ display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
+    .badge{background:var(--teal-soft); color:#0b6a72; padding:6px 10px; border-radius:8px; font-size:.86rem; font-weight:600}
+    a.btn{display:inline-block; margin-top:16px; background:var(--teal); color:white; text-decoration:none; padding:10px 14px; border-radius:10px; font-weight:700}
+    footer{ text-align:center; color:var(--muted); padding:28px 0 18px; font-size:.92rem }
+    @media (max-width:700px){ .pipeline{grid-template-columns:1fr;} .arrow:after{content:"↓"; right:50%; top:auto; bottom:-13px; transform:translateX(50%);} }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <h1>Cerberus</h1>
+      <p class="tag">Healthcare Risk Prediction and Clinical Intelligence Platform — portfolio demo</p>
+      <span class="pill">Synthetic data only — not for clinical use</span>
+
+      <div class="grid pipeline">
+        <div class="card step arrow">Data</div>
+        <div class="card step arrow">Feature Engineering</div>
+        <div class="card step arrow">Model</div>
+        <div class="card step">Risk Score Output</div>
+      </div>
+
+      <a class="btn" href="https://github.com/RyanJBush/Healthcare-risk-prediction-and-clinical-intelligence-platform">View GitHub Repository</a>
+    </section>
+
+    <section class="grid features" style="margin-top:16px;">
+      <article class="card"><h3>Tiered Inference</h3><p>Runs a fast heuristic first, then escalates uncertain cases to full ML scoring.</p></article>
+      <article class="card"><h3>Explainability</h3><p>Returns SHAP-style top-factor contributions and reason codes for each prediction.</p></article>
+      <article class="card"><h3>Monitoring Hooks</h3><p>Includes drift checks and fairness-slice analysis workflows on synthetic cohorts.</p></article>
+      <article class="card"><h3>Role-Aware API</h3><p>Applies JWT auth, RBAC roles, and audit logging for traceable demo operations.</p></article>
+    </section>
+
+    <section class="card" style="margin-top:16px;">
+      <h3 style="margin-top:0">Tech Stack</h3>
+      <div class="badges">
+        <span class="badge">Python</span><span class="badge">FastAPI</span><span class="badge">scikit-learn</span><span class="badge">SHAP</span>
+        <span class="badge">React</span><span class="badge">Vite</span><span class="badge">Tailwind CSS</span><span class="badge">PostgreSQL</span><span class="badge">Docker</span>
+      </div>
+    </section>
+
+    <footer>
+      Built by Ryan Bush · <a href="https://github.com/RyanJBush">github.com/RyanJBush</a>
+    </footer>
+  </main>
+</body>
+</html>
