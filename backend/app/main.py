@@ -1,5 +1,6 @@
 from collections import Counter
 from contextlib import asynccontextmanager
+from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
 import csv
 from io import StringIO
@@ -457,7 +458,7 @@ def compare_patient_models(
     return PatientRiskModelComparisonRead(
         patient_id=patient.id,
         target_type=target_type,
-        models=model_predictions,
+        models=[asdict(prediction) for prediction in model_predictions],
         feature_importance_by_model=feature_importance_by_model,
     )
 

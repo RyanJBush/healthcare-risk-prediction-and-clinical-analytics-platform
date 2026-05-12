@@ -10,16 +10,18 @@ This directory holds screenshots referenced from the main [`README.md`](../../RE
 
 Capture these in order, using the personas in [`docs/demo-runbook.md`](../demo-runbook.md). Use the filenames below so the README links resolve.
 
-| # | File | View | What to show |
-|---|---|---|---|
-| 01 | `01-dashboard.png` | Patient cohort dashboard | KPI tiles, cohort breakdown, recent activity. Sign in as `clinician`. |
-| 02 | `02-patient-detail.png` | Patient detail / risk score | One patient's tiered risk scores across readmission / deterioration / adverse event. |
-| 03 | `03-explanation.png` | SHAP-style explanation | Top-factor contributions, reason codes, plain-language rationale for one score. |
-| 04 | `04-triage-queue.png` | Triage queue | Prioritized alert queue and watchlist with target / status filters. |
-| 05 | `05-risk-analysis.png` | Risk analysis | LogReg vs Random Forest comparison and threshold view (sign in as `analyst`). |
-| 06 | `06-fairness-report.png` | Fairness slice report | Terminal capture of `python scripts/fairness_eval.py --n 500 --seed 42`. |
-| 07 | `07-model-card.png` | Model card | Rendered [`MODEL_CARD.md`](../../MODEL_CARD.md) — intended use, metrics, limitations. |
-| 08 | `08-api-docs.png` | FastAPI Swagger | `http://localhost:8000/docs` with a couple of endpoint groups expanded. |
+| # | File | Captured | View | What to show |
+|---|---|---|---|---|
+| 01 | `01-dashboard.png` | ✅ | Patient cohort dashboard | KPI tiles, cohort breakdown, recent activity. Sign in as `clinician`. |
+| 02 | `02-patient-detail.png` | ✅ | Patient detail / risk score | One patient's tiered risk scores across readmission / deterioration / adverse event. |
+| 03 | `03-explanation.png` | ✅ | SHAP-style explanation | Top-factor contributions, reason codes, plain-language rationale for one score. |
+| 04 | `04-triage-queue.png` | ✅ | Triage queue | Prioritized alert queue and watchlist with target / status filters. |
+| 05 | `05-risk-analysis.png` | ✅ | Risk analysis | LogReg vs Random Forest comparison and threshold view (sign in as `analyst`). |
+| 06 | `06-fairness-report.png` | ✅ | Fairness slice report | Terminal capture of `python scripts/fairness_eval.py --n 500 --seed 42`. |
+| 07 | `07-model-card.png` | ✅ | Model card | Rendered [`MODEL_CARD.md`](../../MODEL_CARD.md) — intended use, metrics, limitations. |
+| 08 | `08-api-docs.png` | ✅ | FastAPI Swagger | `http://localhost:8000/docs` with the `default` tag group expanded. |
+
+All eight screenshots above were captured locally against synthetic seed data (`make demo-bootstrap`, 50 patients, seed 42) via Playwright against a Vite dev build (port 5180) and FastAPI backend (port 8002). Image dimensions are 1440×900 at 1.5× device-pixel ratio. The Swagger image is rendered from `/docs`; the model-card and fairness images are static renders of `MODEL_CARD.md` and the `scripts/fairness_eval.py` terminal output respectively. No real patient data was used.
 
 ## Capture guidance
 
