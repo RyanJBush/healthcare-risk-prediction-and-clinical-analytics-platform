@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
+import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 import { apiRequest } from '../api'
+import SurvivalCurveChart from '../components/SurvivalCurveChart'
 
 export default function RiskAnalysisPage({ token }) {
   const [patients, setPatients] = useState([])
@@ -11,6 +12,8 @@ export default function RiskAnalysisPage({ token }) {
   const [evaluationRun, setEvaluationRun] = useState(null)
   const [driftSignal, setDriftSignal] = useState(null)
   const [predictionLog, setPredictionLog] = useState([])
+  const [calibrationCurve, setCalibrationCurve] = useState(null)
+  const [survivalCurves, setSurvivalCurves] = useState(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -42,18 +45,24 @@ export default function RiskAnalysisPage({ token }) {
       setPatients(withScores)
 
       try {
-        const [comparison, drift, logs] = await Promise.all([
+        const [comparison, drift, logs, calibration, survival] = await Promise.all([
           apiRequest(`/api/evaluation/model-comparison?target_type=${targetType}`, {}, token),
           apiRequest(`/api/monitoring/drift?target_type=${targetType}`, {}, token),
           apiRequest(`/api/monitoring/predictions?target_type=${targetType}&limit=30`, {}, token),
+          apiRequest('/analytics/calibration-curve', {}, token),
+          apiRequest(`/analytics/survival-curves?target_type=${targetType}`, {}, token),
         ])
         setModelComparison(comparison)
         setDriftSignal(drift)
         setPredictionLog(logs)
+        setCalibrationCurve(calibration)
+        setSurvivalCurves(survival)
       } catch (evaluationError) {
         setModelComparison(null)
         setDriftSignal(null)
         setPredictionLog([])
+        setCalibrationCurve(null)
+        setSurvivalCurves(null)
         setRestrictedMessage(evaluationError.message || 'Evaluation comparison unavailable for this role.')
       }
     } catch (loadError) {
@@ -239,6 +248,32 @@ export default function RiskAnalysisPage({ token }) {
           )}
         </section>
       </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <section className="rounded-xl bg-white p-4 shadow">
+          <h2 className="mb-4 text-lg font-medium">Calibration Curve</h2>
+          {calibrationCurve?.mean_predicted_value?.length ? (
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={calibrationCurve.mean_predicted_value.map((v, i) => ({ x: v, y: calibrationCurve.fraction_of_positives[i] }))}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="x" domain={[0,1]} type="number" />
+                  <YAxis dataKey="y" domain={[0,1]} type="number" />
+                  <Tooltip />
+                  <Line dataKey="y" stroke="#2563eb" dot />
+                  <Line data={[{x:0,y:0},{x:1,y:1}]} dataKey="y" stroke="#94a3b8" dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          ) : <p className="text-sm text-slate-500">Calibration data unavailable.</p>}
+          <p className="mt-2 text-xs text-slate-500">Brier score: {calibrationCurve?.brier_score ?? 'n/a'}</p>
+        </section>
+        <section className="rounded-xl bg-white p-4 shadow">
+          <h2 className="mb-4 text-lg font-medium">Kaplan-Meier Survival Curves</h2>
+          {survivalCurves?.curves ? <SurvivalCurveChart curves={survivalCurves.curves} /> : <p className="text-sm text-slate-500">Survival curves unavailable.</p>}
+        </section>
+      </div>
+
       <section className="rounded-xl bg-white p-4 shadow">
         <h2 className="mb-4 text-lg font-medium">Recent Prediction Log</h2>
         <ul className="space-y-2 text-sm">

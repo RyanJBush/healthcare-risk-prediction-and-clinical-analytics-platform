@@ -78,6 +78,8 @@ from app.schemas import (
 )
 from app.security import create_access_token, hash_password, require_roles, verify_password
 from app.services.evaluation import DEFAULT_THRESHOLD, evaluate_models
+from app.services.model_evaluation import calibration_metrics
+from app.services.survival_analysis import SurvivalAnalysisService
 from app.services.model_registry import build_default_registry
 from app.services.risk_models import compare_patient_risk_models, model_feature_importance_snapshot
 from app.services.seed_loader import generate_seed_patients
@@ -1294,6 +1296,34 @@ def cohort_handoff_summary(
     db.commit()
     return HandoffSummaryRead(**summary)
 
+
+
+
+@app.get("/analytics/calibration-curve")
+def get_calibration_curve(
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_roles("admin", "analyst", "clinician")),
+):
+    patients = db.query(Patient).all()
+    result = calibration_metrics(patients)
+    _audit(db, "view_calibration_curve", "analytics", "calibration", actor, {"points": len(result["fraction_of_positives"])})
+    db.commit()
+    return result
+
+
+@app.get("/analytics/survival-curves")
+def get_survival_curves(
+    target_type: str = Query("readmission"),
+    db: Session = Depends(get_db),
+    actor: User = Depends(require_roles("admin", "analyst", "clinician")),
+):
+    patients = db.query(Patient).all()
+    latest = _latest_predictions_by_target(db, target_type)
+    service = SurvivalAnalysisService()
+    curves = service.build_curves(patients, latest)
+    _audit(db, "view_survival_curves", "analytics", target_type, actor, {"tiers": list(curves.keys())})
+    db.commit()
+    return {"target_type": target_type, "curves": curves}
 
 @app.post("/api/demo/load-seed", response_model=SeedLoadResult, status_code=status.HTTP_201_CREATED)
 def load_seed_dataset(

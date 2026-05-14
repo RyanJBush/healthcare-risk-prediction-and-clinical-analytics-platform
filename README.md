@@ -91,6 +91,10 @@ Detailed walkthrough: [`docs/demo-runbook.md`](docs/demo-runbook.md)
 
 All preview artifacts are from local, synthetic demo flows and are **not for clinical use**.
 
+## Production Considerations
+
+- HIPAA-adjacent architecture and compliance-oriented controls are documented in [`docs/hipaa-design-notes.md`](docs/hipaa-design-notes.md).
+
 ## Limitations and future work
 
 - Synthetic records are simplified and do not reflect real populations.
