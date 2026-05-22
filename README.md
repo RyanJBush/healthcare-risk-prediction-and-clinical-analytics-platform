@@ -1,53 +1,59 @@
-# Cerberus — Synthetic Healthcare Risk Prediction Portfolio
+# Healthcare Risk Prediction & Clinical Analytics Platform
 
-> ⚠️ **Disclaimer:** Cerberus uses **synthetic data only** and contains **no PHI**. It is a student portfolio demo and is **not for clinical use**.
+> ⚠️ **Disclaimer:** This project uses synthetic data for educational and portfolio purposes only. It is **not** intended for clinical decision-making, diagnosis, or treatment.
 
-Cerberus is an educational ML + software engineering project that simulates a healthcare-inspired risk workflow. The project demonstrates end-to-end pipeline design, interpretable model outputs, and transparent limitations in a responsible portfolio format.
+## Executive Summary
+This repository is a recruiter-ready, end-to-end healthcare analytics portfolio project that combines machine learning, backend APIs, and a frontend application for risk scoring workflows. It demonstrates how to build a clinical-analytics-style platform with synthetic patient records, model evaluation tooling, explainability outputs, and role-based application flows. The implementation emphasizes transparent limitations, reproducible local development, and practical data science + software engineering integration.
 
-I am a **University of Maryland student studying Information Science and Electrical Engineering with a Business minor.**
+## Healthcare Analytics Problem This Project Solves
+Healthcare teams often need a structured way to identify higher-risk patient profiles and prioritize review queues, while also understanding why a model generated a score. This project demonstrates a synthetic risk prediction workflow that supports:
+- Multi-target risk scoring (readmission, deterioration, adverse event)
+- Triage-oriented categorization (low/medium/high)
+- Model comparison and threshold exploration for analytics review
+- Explainability-oriented outputs to make model behavior easier to inspect
 
-## Project goal (high level)
-
-Cerberus estimates general risk categories (for example, readmission-style or deterioration-style targets) from synthetic patient-like features. The objective is to demonstrate:
-
-- feature engineering for tabular ML,
-- baseline model training and comparison,
-- explainability outputs (top contributing factors), and
-- full-stack product thinking around review workflows.
-
-This is an educational approximation of a risk-scoring pipeline, not a diagnostic or treatment tool.
-
-## What this demonstrates
-
-- Full-stack architecture: FastAPI backend + React frontend + SQL persistence.
-- Tiered scoring pattern: quick heuristic path and model-based path.
-- Explainability outputs with SHAP-style top factors and reason codes.
-- Training run tracking and model-version registry concepts.
-- Fairness-slice and drift-monitoring style analysis on synthetic cohorts.
-- Role-aware workflows (RBAC, audit-style logs) in a demo environment.
-
-## Live Demo
-
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-Open-2ea44f?style=for-the-badge)](https://healthcare-risk.onrender.com)
+## Key Features
+- FastAPI backend with authenticated API workflows and role-aware access patterns
+- Synthetic patient and observation data generation for reproducible demos
+- Tiered risk scoring pipeline with baseline logic and model-driven scoring paths
+- ML model training endpoints and persisted training run metadata
+- Evaluation endpoints for ROC-AUC, PR-AUC, precision/recall/F1, confusion matrix, and calibration outputs
+- Drift-monitoring-style and fairness-slice analysis utilities (demo/educational use)
+- React frontend pages for dashboard, triage, patient detail, and risk analysis
+- Audit logging and model registry/model card concepts
 
 ## Tech Stack
+- **Programming & ML:** Python, NumPy, scikit-learn, SHAP
+- **Backend:** FastAPI, SQLAlchemy, JWT-based auth
+- **Frontend:** React (Vite), Tailwind CSS, Recharts
+- **Data Layer:** PostgreSQL (Docker Compose) and SQLite (local/test scenarios)
+- **Tooling:** pytest, ruff, mypy, Makefile, Docker Compose
 
-| Layer | Technologies |
-| --- | --- |
-| Backend | Python, FastAPI, SQLAlchemy, JWT auth |
-| Machine Learning | scikit-learn (LogisticRegression, RandomForestClassifier), SHAP |
-| Frontend | React, Vite, Tailwind CSS, Recharts |
-| Data | PostgreSQL (Docker) or SQLite (local tests) |
-| Developer Tooling | Makefile, Docker Compose, pytest, ruff, mypy |
+## Risk Prediction / Analytics Workflow
+1. Seed synthetic patients via demo tooling/API.
+2. Create or ingest patient observations in the backend.
+3. Run tiered risk scoring for configured target types.
+4. Persist prediction outputs, risk categories, and explanation artifacts.
+5. Review triage views and patient-level detail in the frontend.
+6. Run evaluation/model comparison workflows with configurable thresholds.
+7. Inspect calibration, monitoring, and summary analytics endpoints.
 
-## Architecture
+## Data Processing and Model Overview
+- The project builds tabular feature vectors from synthetic patient attributes (e.g., age, BMI, blood pressure, cholesterol, glucose, smoker flag) plus derived risk-oriented features.
+- Implemented model paths include logistic regression and random forest (with optional XGBoost when available) for comparative evaluation workflows.
+- The training/evaluation code includes time-aware splitting, threshold sweeps, cost-style scoring, and common classification metrics.
+- Explainability support includes feature importance snapshots and SHAP-integrated interpretation flows.
+- All data in this repository is synthetic and intended for experimentation, not clinical validation.
 
-See [`docs/architecture.md`](docs/architecture.md) for architecture notes.
+## Architecture Overview
+- **Frontend:** React app with pages for login, dashboard, patients, patient detail, triage, and risk analysis.
+- **Backend API:** FastAPI application exposing endpoints for auth, patients, predictions, explanations, training, evaluation, monitoring, and summaries.
+- **ML Services:** Feature engineering, offline training, model evaluation, risk model comparison, and calibration utilities.
+- **Persistence:** SQLAlchemy models for users, patients, predictions, explanations, training/evaluation runs, audit logs, and related workflow entities.
 
-Pipeline summary: **Features → Model → Risk Score**
+For a deeper architecture walkthrough, see [`docs/architecture.md`](docs/architecture.md).
 
-## Local run instructions
-
+## Setup and Installation
 ```bash
 git clone https://github.com/RyanJBush/Healthcare-risk-prediction-and-clinical-intelligence-platform.git
 cd Healthcare-risk-prediction-and-clinical-intelligence-platform
@@ -55,83 +61,45 @@ make setup
 make dev
 ```
 
-Then open:
-- UI: `http://localhost:5173`
+Then access:
+- Frontend: `http://localhost:5173`
 - API docs: `http://localhost:8000/docs`
 
-## Synthetic data + model commands
-
-Use these commands for a quick local demo loop:
-
+Useful demo commands:
 ```bash
-# Seed synthetic records and run batch scoring
 make demo-bootstrap
-
-# Run a small offline fairness slice on synthetic data
-make demo-fairness
-
-# Trigger a small training run via API (defaults: readmission, 20 seeded rows)
 make demo-train-small
-```
-
-You can also score one synthetic profile directly:
-
-```bash
+make demo-fairness
 make demo-predict
 ```
 
-## Demo workflow
+## Example Use Cases
+- Demonstrating a healthcare-oriented ML project in data science or analytics interviews
+- Showcasing model evaluation literacy (discrimination, calibration, thresholding)
+- Presenting a full-stack ML product workflow (API + UI + persistence)
+- Discussing responsible synthetic-data prototyping and model limitations
+- Highlighting collaboration-ready engineering practices (testing, linting, reproducible scripts)
 
-1. Start services with `make dev`.
-2. Seed synthetic cohort with `make demo-bootstrap`.
-3. Optionally run `make demo-train-small` to create a small training run.
-4. Sign in (`clinician / clinician123`) and review Dashboard, Triage, and Patient Detail.
-5. Open Risk Analysis to compare model behavior and thresholds.
+## Skills Demonstrated
+- Healthcare analytics framing with risk-stratification-style workflows
+- End-to-end machine learning pipeline development for tabular data
+- Feature engineering and model interpretability patterns
+- Model evaluation and monitoring-oriented analysis
+- API design and backend service architecture with Python/FastAPI
+- Frontend data visualization and analyst-friendly UI patterns
+- Secure application basics (token auth, role-based access patterns)
+- Software engineering quality practices (tests, linting, modular services)
 
-Detailed walkthrough: [`docs/demo-runbook.md`](docs/demo-runbook.md)
+## Resume-Ready Project Description
+Built a **Healthcare Risk Prediction & Clinical Analytics Platform** using **Python, FastAPI, scikit-learn, SQLAlchemy, React, and PostgreSQL** to simulate risk-stratification workflows on synthetic patient data. Implemented feature engineering, tiered prediction logic, model training/evaluation services, explainability outputs, drift/fairness analysis utilities, and role-aware API/frontend experiences to demonstrate production-style machine learning and software engineering capabilities.
 
-## Screenshots and portfolio materials
-
-- Screenshot inventory + capture checklist: [`docs/screenshots/README.md`](docs/screenshots/README.md)
-- Standalone portfolio page: [`docs/preview/index.html`](docs/preview/index.html)
-
-All preview artifacts are from local, synthetic demo flows and are **not for clinical use**.
-
-
-## Model Explainability
-
-Cerberus includes SHAP-based explainability so each prediction can be decomposed into feature-level contributions. The SHAP waterfall plot starts from a baseline risk expectation and then shows how each feature pushes an individual prediction up or down, with larger bars indicating stronger contribution magnitude. Positive contributions move the patient toward higher modeled risk, while negative contributions move the patient toward lower modeled risk.
-
-![SHAP Waterfall Plot Placeholder](docs/images/shap-waterfall.png)
-
-## Risk Scoring Logic
-
-Patient risk scoring follows a transparent sequence:
-
-1. **Feature Inputs:** Synthetic patient attributes are assembled and normalized.
-2. **ML Model Inference:** The trained classifier produces a risk probability score.
-3. **SHAP Explanation:** Feature contributions are generated for interpretability and review.
-4. **Risk Tier Mapping:** The continuous score is translated into **Low / Medium / High** operational tiers.
-
-## Compliance & Ethics
-
-> **Note:** This platform is built for educational and portfolio use with **synthetic and de-identified data only**. It is **not a clinical decision support tool** and must not be used for diagnosis, treatment, or real patient care decisions.
-
-## Production Considerations
-
-- HIPAA-adjacent architecture and compliance-oriented controls are documented in [`docs/hipaa-design-notes.md`](docs/hipaa-design-notes.md).
-
-## Limitations and future work
-
-- Synthetic records are simplified and do not reflect real populations.
-- Metrics are demonstration-only and not clinically validated.
-- No real-world deployment claims are made.
-- Future work: calibration diagnostics, stronger synthetic cohort generation, and expanded monitoring UX.
-
-## Resume bullets
-
-Resume-ready project bullets: [`docs/resume-bullets.md`](docs/resume-bullets.md)
+## Future Improvements
+- Expand synthetic cohort generation realism and scenario diversity
+- Add stronger experiment tracking and artifact/version governance
+- Deepen model monitoring with richer longitudinal drift diagnostics
+- Improve interpretability UX and clinician-facing explanation layouts
+- Add CI quality gates for additional statistical and data validation checks
+- Harden packaging/deployment ergonomics for easier local onboarding
 
 ## License
-
 MIT License: [`LICENSE`](LICENSE)
