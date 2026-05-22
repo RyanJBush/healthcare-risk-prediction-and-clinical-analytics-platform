@@ -26,13 +26,19 @@ This is an educational approximation of a risk-scoring pipeline, not a diagnosti
 - Fairness-slice and drift-monitoring style analysis on synthetic cohorts.
 - Role-aware workflows (RBAC, audit-style logs) in a demo environment.
 
-## Tech stack
+## Live Demo
 
-- **Backend:** Python, FastAPI, SQLAlchemy, JWT auth
-- **ML:** scikit-learn (LogisticRegression, RandomForestClassifier), SHAP
-- **Frontend:** React, Vite, Tailwind CSS, Recharts
-- **Data:** PostgreSQL (Docker) or SQLite (local tests)
-- **Developer tooling:** Makefile, Docker Compose, pytest, ruff, mypy
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Open-2ea44f?style=for-the-badge)](https://healthcare-risk.onrender.com)
+
+## Tech Stack
+
+| Layer | Technologies |
+| --- | --- |
+| Backend | Python, FastAPI, SQLAlchemy, JWT auth |
+| Machine Learning | scikit-learn (LogisticRegression, RandomForestClassifier), SHAP |
+| Frontend | React, Vite, Tailwind CSS, Recharts |
+| Data | PostgreSQL (Docker) or SQLite (local tests) |
+| Developer Tooling | Makefile, Docker Compose, pytest, ruff, mypy |
 
 ## Architecture
 
@@ -90,6 +96,26 @@ Detailed walkthrough: [`docs/demo-runbook.md`](docs/demo-runbook.md)
 - Standalone portfolio page: [`docs/preview/index.html`](docs/preview/index.html)
 
 All preview artifacts are from local, synthetic demo flows and are **not for clinical use**.
+
+
+## Model Explainability
+
+Cerberus includes SHAP-based explainability so each prediction can be decomposed into feature-level contributions. The SHAP waterfall plot starts from a baseline risk expectation and then shows how each feature pushes an individual prediction up or down, with larger bars indicating stronger contribution magnitude. Positive contributions move the patient toward higher modeled risk, while negative contributions move the patient toward lower modeled risk.
+
+![SHAP Waterfall Plot Placeholder](docs/images/shap-waterfall.png)
+
+## Risk Scoring Logic
+
+Patient risk scoring follows a transparent sequence:
+
+1. **Feature Inputs:** Synthetic patient attributes are assembled and normalized.
+2. **ML Model Inference:** The trained classifier produces a risk probability score.
+3. **SHAP Explanation:** Feature contributions are generated for interpretability and review.
+4. **Risk Tier Mapping:** The continuous score is translated into **Low / Medium / High** operational tiers.
+
+## Compliance & Ethics
+
+> **Note:** This platform is built for educational and portfolio use with **synthetic and de-identified data only**. It is **not a clinical decision support tool** and must not be used for diagnosis, treatment, or real patient care decisions.
 
 ## Production Considerations
 
